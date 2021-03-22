@@ -235,8 +235,8 @@ namespace SeamlessClientPlugin
 
         public static void TryShow(string message)
         {
-            if (MySession.Static?.LocalHumanPlayer != null)
-                MyAPIGateway.Utilities?.ShowMessage("NetworkClient", message);
+           // if (MySession.Static?.LocalHumanPlayer != null)
+                //MyAPIGateway.Utilities?.ShowMessage("NetworkClient", message);
 
             MyLog.Default?.WriteLineAndConsole($"SeamlessClient: {message}");
         }
