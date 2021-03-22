@@ -106,7 +106,7 @@ namespace SeamlessClientPlugin
 
 
 
-        public static string Version = "1.1.0";
+        public static string Version = "1.2.0";
         private bool Initilized = false;
         private bool SentPingResponse = false;
         public const ushort SeamlessClientNetID = 2936;
