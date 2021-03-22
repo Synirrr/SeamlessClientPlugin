@@ -9,13 +9,16 @@ using Sandbox.Graphics.GUI;
 using Sandbox.ModAPI;
 using SeamlessClientPlugin.ClientMessages;
 using SeamlessClientPlugin.SeamlessTransfer;
+using SeamlessClientPlugin.Updater;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using System.Timers;
+using System.Windows.Forms;
 using VRage.Input;
 using VRage.Plugins;
 using VRage.Utils;
@@ -103,11 +106,11 @@ namespace SeamlessClientPlugin
 
 
 
-        public static string Version = "1.0.0";
+        public static string Version = "1.1.0";
         private bool Initilized = false;
         private bool SentPingResponse = false;
         public const ushort SeamlessClientNetID = 2936;
-        private Timer PingTimer = new Timer(2000);
+        private System.Timers.Timer PingTimer = new System.Timers.Timer(3000);
 
         public static LoadServer Server = new LoadServer();
 
@@ -132,7 +135,20 @@ namespace SeamlessClientPlugin
         public void Init(object gameInstance)
         {
             TryShow("Running Seamless Client Plugin v[" + Version + "]");
-           // Reload = new ReloadPatch();
+
+            UpdateChecker Checker = new UpdateChecker(Version, false);
+
+            Task UpdateChecker = new Task(() => Checker.PingUpdateServer());
+            UpdateChecker.Start();
+
+
+
+            
+
+
+           
+
+            // Reload = new ReloadPatch();
             //Patching goes here
 
 
@@ -141,6 +157,8 @@ namespace SeamlessClientPlugin
             //throw new NotImplementedException();
         }
 
+        
+
         private void PingTimer_Elapsed(object sender, ElapsedEventArgs e)
         {
             //TryShow("Sending PluginVersion to Server!");
@@ -148,7 +166,7 @@ namespace SeamlessClientPlugin
             {
 
                 ClientMessage PingServer = new ClientMessage(ClientMessageType.FirstJoin);
-                MyAPIGateway.Multiplayer.SendMessageToServer(SeamlessClientNetID, Utilities.Utility.Serialize(PingServer));
+                MyAPIGateway.Multiplayer?.SendMessageToServer(SeamlessClientNetID, Utilities.Utility.Serialize(PingServer));
             }
             catch (Exception ex)
             {
@@ -221,6 +239,39 @@ namespace SeamlessClientPlugin
                 MyAPIGateway.Utilities?.ShowMessage("NetworkClient", message);
 
             MyLog.Default?.WriteLineAndConsole($"SeamlessClient: {message}");
+        }
+
+
+        public static void RestartClientAfterUpdate()
+        {
+            try
+            {
+                TryShow("Restarting Client!");
+
+                string exe = Assembly.GetEntryAssembly().Location;
+                
+
+                Process currentProcess = Process.GetCurrentProcess();
+
+                string[] CommandArgs = Environment.GetCommandLineArgs();
+
+                string NewCommandLine = "";
+                for(int i = 1; i < CommandArgs.Length; i++)
+                {
+                    NewCommandLine += " "+ CommandArgs[i];
+                }
+
+                TryShow(NewCommandLine);
+
+                Process.Start(exe, NewCommandLine);
+
+               
+                currentProcess.Kill();
+            }
+            catch (Exception ex)
+            {
+                TryShow("Restarting Client error!");
+            }
         }
     }
 }

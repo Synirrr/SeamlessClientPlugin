@@ -37,7 +37,7 @@ namespace SeamlessClientPlugin.ClientMessages
         {
             MessageType = Type;
 
-            if (!MyAPIGateway.Multiplayer.IsServer)
+            if (MyAPIGateway.Multiplayer != null && !MyAPIGateway.Multiplayer.IsServer)
             {
                 if(MyAPIGateway.Session.LocalHumanPlayer == null)
                 {

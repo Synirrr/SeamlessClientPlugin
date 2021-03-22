@@ -2,6 +2,7 @@
 using Sandbox;
 using Sandbox.Definitions;
 using Sandbox.Engine;
+using Sandbox.Engine.Analytics;
 using Sandbox.Engine.Multiplayer;
 using Sandbox.Engine.Networking;
 using Sandbox.Engine.Physics;
@@ -21,6 +22,7 @@ using SeamlessClientPlugin.Utilities;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
@@ -28,6 +30,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using VRage;
+using VRage.FileSystem;
 using VRage.Game;
 using VRage.Game.ModAPI;
 using VRage.Game.SessionComponents;
@@ -68,12 +71,15 @@ namespace SeamlessClientPlugin.SeamlessTransfer
         //Reflected Methods
         public static FieldInfo VirtualClients;
         public static FieldInfo AdminSettings;
+
         public static FieldInfo RemoteAdminSettings;
         public static FieldInfo MPlayerGPSCollection;
         public static MethodInfo RemovePlayerFromDictionary;
         public static MethodInfo InitVirtualClients;
         public static MethodInfo LoadPlayerInternal;
         public static MethodInfo LoadMembersFromWorld;
+
+        public static MethodInfo LoadMultiplayer;
 
 
         public LoadServer()
@@ -131,6 +137,12 @@ namespace SeamlessClientPlugin.SeamlessTransfer
             AdminSettings = typeof(MySession).GetField("m_adminSettings", BindingFlags.Instance | BindingFlags.NonPublic);
             RemoteAdminSettings = typeof(MySession).GetField("m_remoteAdminSettings", BindingFlags.Instance | BindingFlags.NonPublic);
             MPlayerGPSCollection = typeof(MyPlayerCollection).GetField("m_players", BindingFlags.Instance | BindingFlags.NonPublic);
+            LoadMultiplayer = typeof(MySession).GetMethod("LoadMultiplayer", BindingFlags.Static | BindingFlags.NonPublic);
+
+           
+            MethodInfo LoadingAction = typeof(MySessionLoader).GetMethod("LoadMultiplayerSession", BindingFlags.Public | BindingFlags.Static);
+            Patcher.Patch(LoadingAction, prefix: new HarmonyMethod(GetPatchMethod(nameof(LoadMultiplayerSession))));
+
         }
 
 
@@ -138,6 +150,101 @@ namespace SeamlessClientPlugin.SeamlessTransfer
         {
             return typeof(LoadServer).GetMethod(v, BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
         }
+
+
+
+        private static bool GetCustomLoadingScreenPath(List<MyObjectBuilder_Checkpoint.ModItem> Mods, out string File)
+        {
+            
+
+            string WorkshopDir = MyFileSystem.ModsPath;
+
+            SeamlessClient.TryShow(WorkshopDir);
+
+
+            File = null;
+            SeamlessClient.TryShow("Installed Mods: " + Mods);
+            foreach(var Mod in Mods)
+            {
+                string SearchDir = Mod.GetPath();
+                var files = Directory.EnumerateFiles(SearchDir, "*.dds", SearchOption.TopDirectoryOnly);
+                foreach (var file in files)
+                {
+                    if (Path.GetFileNameWithoutExtension(file) == "CustomLoadingBackground")
+                    {
+                        SeamlessClient.TryShow(Mod.FriendlyName + " contains a custom loading background!");
+                        File = file;
+                        return true;
+                    }
+                        
+
+                }
+
+
+            }
+
+            SeamlessClient.TryShow("No installed custom loading screen!");
+            return false;
+        }
+
+
+
+        private static bool LoadMultiplayerSession(MyObjectBuilder_World world, MyMultiplayerBase multiplayerSession)
+        {
+            MyLog.Default.WriteLine("LoadSession() - Start");
+            if (!MyWorkshop.CheckLocalModsAllowed(world.Checkpoint.Mods, allowLocalMods: false))
+            {
+                MyGuiSandbox.AddScreen(MyGuiSandbox.CreateMessageBox(MyMessageBoxStyleEnum.Error, MyMessageBoxButtonsType.OK, messageCaption: MyTexts.Get(MyCommonTexts.MessageBoxCaptionError), messageText: MyTexts.Get(MyCommonTexts.DialogTextLocalModsDisabledInMultiplayer)));
+                MyLog.Default.WriteLine("LoadSession() - End");
+                return false;
+            }
+            MyWorkshop.DownloadModsAsync(world.Checkpoint.Mods, delegate (bool success)
+            {
+                if (success)
+                {
+                    MyScreenManager.CloseAllScreensNowExcept(null);
+                    MyGuiSandbox.Update(16);
+                    if (MySession.Static != null)
+                    {
+                        MySession.Static.Unload();
+                        MySession.Static = null;
+                    }
+
+                    string CustomBackgroundImage = null;
+                    GetCustomLoadingScreenPath(world.Checkpoint.Mods, out CustomBackgroundImage);
+
+                    MySessionLoader.StartLoading(delegate
+                    {
+                        
+                        LoadMultiplayer.Invoke(null, new object[] { world, multiplayerSession });
+                        //MySession.LoadMultiplayer(world, multiplayerSession);
+                    }, null, CustomBackgroundImage, null);
+                }
+                else
+                {
+                    multiplayerSession.Dispose();
+                    MySessionLoader.UnloadAndExitToMenu();
+                    if (MyGameService.IsOnline)
+                    {
+                        MyGuiSandbox.AddScreen(MyGuiSandbox.CreateMessageBox(MyMessageBoxStyleEnum.Error, MyMessageBoxButtonsType.OK, messageCaption: MyTexts.Get(MyCommonTexts.MessageBoxCaptionError), messageText: MyTexts.Get(MyCommonTexts.DialogTextDownloadModsFailed)));
+                    }
+                    else
+                    {
+                        MyGuiSandbox.AddScreen(MyGuiSandbox.CreateMessageBox(MyMessageBoxStyleEnum.Error, MyMessageBoxButtonsType.OK, messageCaption: MyTexts.Get(MyCommonTexts.MessageBoxCaptionError), messageText: new StringBuilder(string.Format(MyTexts.GetString(MyCommonTexts.DialogTextDownloadModsFailedSteamOffline), MySession.GameServiceName))));
+                    }
+                }
+                MyLog.Default.WriteLine("LoadSession() - End");
+            }, delegate
+            {
+                multiplayerSession.Dispose();
+                MySessionLoader.UnloadAndExitToMenu();
+            });
+
+            return false;
+        }
+
+
+
 
 
         private static void OnUserJoined(ref JoinResultMsg msg)
@@ -317,48 +424,19 @@ namespace SeamlessClientPlugin.SeamlessTransfer
 
 
 
-            foreach(var GPS in checkpoint.Gps.Dictionary)
-            {
-                if (GPS.Key != MySession.Static.LocalPlayerId)
-                    continue;
-
-                SeamlessClient.TryShow(GPS.Key + ":" + GPS.Value.Entries.Count);
-
-
-            }
-
 
             SeamlessClient.TryShow("LocalPlayerID: " + MySession.Static.LocalPlayerId);
-            checkpoint.Gps.Dictionary.TryGetValue(MySession.Static.LocalPlayerId, out MyObjectBuilder_Gps GPSCollection);
-            SeamlessClient.TryShow("You have " + GPSCollection.Entries.Count + " gps points!");
-
-
-            Dictionary<long, Dictionary<int, MyGps>> m_playerGpss = (Dictionary<long, Dictionary<int, MyGps>>)typeof(MyGpsCollection).GetField("m_playerGpss", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(MySession.Static.Gpss);
-            m_playerGpss.Clear();
-
-
-            foreach (var GPS in GPSCollection.Entries)
-            {
-                MyGps myGps = new MyGps(GPS);
-                
-                if(MySession.Static.Gpss.AddPlayerGps(MySession.Static.LocalPlayerId, ref myGps))
-                {
-                    MyHud.GpsMarkers.RegisterMarker(myGps);
-                }
-                else
-                {
-                    SeamlessClient.TryShow("Failed to registered Marker! It already exsists!");
-                }
-            }
+            //checkpoint.Gps.Dictionary.TryGetValue(MySession.Static.LocalPlayerId, out MyObjectBuilder_Gps GPSCollection);
+            //SeamlessClient.TryShow("You have " + GPSCollection.Entries.Count + " gps points!");
 
 
 
+            MySession.Static.Gpss = new MyGpsCollection();
             MySession.Static.Gpss.LoadGpss(checkpoint);
-            MySession.Static.Toolbars.LoadToolbars(checkpoint);
+            MyRenderProxy.RebuildCullingStructure();
+            //MySession.Static.Toolbars.LoadToolbars(checkpoint);
 
             Sync.Players.RespawnComponent.InitFromCheckpoint(checkpoint);
-            
-
         }
 
 

@@ -124,7 +124,12 @@ namespace SeamlessClientPlugin.SeamlessTransfer
                 //Sync.Clients.Clear();
 
 
+                var PCollection = MySession.Static.Gpss[MySession.Static.LocalPlayerId];
+                PCollection.Clear();
+                MyHud.GpsMarkers.Clear();
+                
 
+                SeamlessClient.TryShow(PCollection.Count + "registered GPS points");
                 // MyGuiSandbox.UnloadContent();
             }
         }
