@@ -155,32 +155,34 @@ namespace SeamlessClientPlugin.SeamlessTransfer
 
         private static bool GetCustomLoadingScreenPath(List<MyObjectBuilder_Checkpoint.ModItem> Mods, out string File)
         {
-            
-
-            string WorkshopDir = MyFileSystem.ModsPath;
-
-            SeamlessClient.TryShow(WorkshopDir);
-
-
             File = null;
-            SeamlessClient.TryShow("Installed Mods: " + Mods);
-            foreach(var Mod in Mods)
+            string WorkshopDir = MyFileSystem.ModsPath;
+            SeamlessClient.TryShow(WorkshopDir);
+            try
             {
-                string SearchDir = Mod.GetPath();
-                var files = Directory.EnumerateFiles(SearchDir, "*.dds", SearchOption.TopDirectoryOnly);
-                foreach (var file in files)
+                SeamlessClient.TryShow("Installed Mods: " + Mods);
+                foreach (var Mod in Mods)
                 {
-                    if (Path.GetFileNameWithoutExtension(file) == "CustomLoadingBackground")
-                    {
-                        SeamlessClient.TryShow(Mod.FriendlyName + " contains a custom loading background!");
-                        File = file;
-                        return true;
-                    }
-                        
+                    string SearchDir = Mod.GetPath();
 
+                    if (!Directory.Exists(SearchDir))
+                        continue;
+
+                    var files = Directory.GetFiles(SearchDir, "*.dds", SearchOption.TopDirectoryOnly);
+                    foreach (var file in files)
+                    {
+                        if (Path.GetFileNameWithoutExtension(file) == "CustomLoadingBackground")
+                        {
+                            SeamlessClient.TryShow(Mod.FriendlyName + " contains a custom loading background!");
+                            File = file;
+                            return true;
+                        }
+                    }
                 }
 
-
+            }catch(Exception ex)
+            {
+                SeamlessClient.TryShow(ex.ToString());
             }
 
             SeamlessClient.TryShow("No installed custom loading screen!");
