@@ -1,14 +1,19 @@
-﻿using ProtoBuf;
+﻿using AutoUpdaterDotNET;
+using ProtoBuf;
 using Sandbox.Graphics.GUI;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using System.Net;
 using System.Net.Sockets;
 using System.Reflection;
+using System.Runtime.Serialization;
+using System.Runtime.Serialization.Json;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows.Forms;
 using System.Xml.Serialization;
 
 namespace SeamlessClientPlugin.Updater
@@ -23,128 +28,147 @@ namespace SeamlessClientPlugin.Updater
         //AWS Website server
         const string SERVER_IP = "3.80.137.183";
 
+        private string GitHubAPILink = "https://api.github.com/repos/Casimir255/SeamlessClientPlugin/releases/latest";
+        private string GitHubZipLink;
+        private WebClient Client;
+
+
         private byte[] RecievedZipMememory;
 
-        public UpdateChecker(string Version, bool AutoUpdate)
-        {
-            this.DownloadUpdate = AutoUpdate;
-            PluginFolder = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
-            CurrentVersion = Version;
 
-            SeamlessClient.TryShow("You are running @" + PluginFolder);
+
+
+        public UpdateChecker(bool AutoUpdate)
+        {
+            PluginFolder = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+            Client = new WebClient();
             DeleteOLDFiles();
         }
+
+
 
 
         public void PingUpdateServer()
         {
             try
             {
+                //Create new webclient and insert a user-agent
+                Client.Headers["User-Agent"] = "SeamlessClientUpdater";
 
-                TcpClient client = new TcpClient(SERVER_IP, PORT_NO);
-                client.ReceiveBufferSize = 1000000;
+                //Grap API data for latest seamless client release
+                string data = Client.DownloadString(GitHubAPILink);
 
-                NetworkStream nwStream = client.GetStream();
-
-                UpdateMessage Message = new UpdateMessage();
-                Message.ClientVersion = CurrentVersion;
-                Message.DownloadNewUpdate = DownloadUpdate;
-
-                //Send current version to server
-                //string XMLData = Utility.Serialize(Message);
-                byte[] bytesToSend = Utility.Serialize(Message);
-                nwStream.Write(bytesToSend, 0, bytesToSend.Length);
-
-                //Get server reply
-                byte[] bytesToRead = new byte[client.ReceiveBufferSize];
-                int bytesRead = nwStream.Read(bytesToRead, 0, client.ReceiveBufferSize);
+                //SeamlessClient.TryShow(data);
 
 
-                byte[] ReMessage = bytesToRead.Take(bytesRead).ToArray();
-                //string StringServerReply = Encoding.ASCII.GetString(bytesToRead, 0, bytesRead);
-                // SeamlessClient.TryShow(StringServerReply);
+                DataContractJsonSerializer s = new DataContractJsonSerializer(typeof(GithubRelease));
+
+                GithubRelease Release;
+                using (MemoryStream stream = new MemoryStream(Encoding.UTF8.GetBytes(data)))
+                {
+                    Release = (GithubRelease)s.ReadObject(stream);
+                }
 
 
-                Message = Utility.Deserialize<UpdateMessage>(ReMessage);
-                UpdateServerReply(Message);
+                if (Release == null || !TryGetMainRelease(Release.Content, out GitZipFile MainReleaseFile))
+                    return;
 
-                SeamlessClient.TryShow("Received! Latest Version: " + Message.ServerVersion);
-            }catch(SocketException)
-            {
-                //Cant connect to server.
-                SeamlessClient.TryShow("Cant Connect to UpdateServer!");
-                return;
-            }catch(Exception ex)
-            {
-                SeamlessClient.TryShow("Update Error! \n"+ex.ToString());
-                return;
+
+                //Check if the client needs an update based off of github latest release version
+
+                if (!NeedsUpdate(SeamlessClient.Version, Release.LatestVersion))
+                    return;
+
+
+                //Ask client if they want to update!
+                ShowDialog(Release, MainReleaseFile);
             }
-
+            catch (Exception Ex)
+            {
+                SeamlessClient.TryShow(Ex.ToString());
+            }
         }
 
-        private void UpdateServerReply(UpdateMessage Message)
+
+        private bool TryGetMainRelease(GitZipFile[] Files, out GitZipFile Release)
         {
-            if (!NeedsUpdate(Message.ClientVersion, Message.ServerVersion))
-                return;
+            Release = null;
 
-            SeamlessClient.TryShow("An Update is required! ClientVersion: [" + Message.ClientVersion + "] Server Version: [" + Message.ServerVersion + "]");
-            RecievedZipMememory = Message.XmlCharactersAsBytes;
+            //Sanity saftey checks
+            if (Files == null || Files.Length <= 0)
+                return false;
 
-
-            if (!DownloadUpdate)
+            foreach (GitZipFile File in Files)
             {
-                //Create Update question and UI
-                StringBuilder Title = new StringBuilder();
-                Title.Append($"Would you like to download Seamless Client Plugin {Message.ServerVersion} Update?");
-                StringBuilder Caption = new StringBuilder();
-                Caption.AppendLine(" - Patch Notes - ");
-                Caption.AppendLine();
-                Caption.AppendLine(Message.UpdateNotes);
-                Caption.AppendLine();
-                Caption.AppendLine("Your client will restart after install");
-                
+                if (File.Name == "SeamlessClientPlugin.zip")
+                {
+                    Release = File;
+                    return true;
+                }
 
-                MyScreenManager.AddScreen(MyGuiSandbox.CreateMessageBox(MyMessageBoxStyleEnum.Info, MyMessageBoxButtonsType.YES_NO_TIMEOUT, Caption, Title, null, null, null, null, UpdateMessageBoxCallback, 60000, MyGuiScreenMessageBox.ResultEnum.YES, canHideOthers: true, new VRageMath.Vector2(.5f,.4f), useOpacity: false));
+            }
+
+            return false;
+        }
 
 
-                return;
+        private void ShowDialog(GithubRelease Release, GitZipFile MainReleaseFile)
+        {
+            StringBuilder Response = new StringBuilder();
+            Response.AppendLine($"Current version: {SeamlessClient.Version} Latest: {Release.LatestVersion}");
+            Response.AppendLine($"Update: {Release.Name}");
+            Response.AppendLine($"Description: {Release.Description}");
+            Response.AppendLine($"Size: {MainReleaseFile.Size / 1000}kb");
+            Response.AppendLine();
+            Response.AppendLine("Warning: If you have a version less than latest seamless will be disabled to prevent crashes!");
+            Response.AppendLine("(Clicking yes should restart your game)");
+
+            DialogResult Result = MessageBox.Show(Response.ToString(), $"Download Seamless Client Plugin Update v{ Release.LatestVersion}?", MessageBoxButtons.YesNo, MessageBoxIcon.None, MessageBoxDefaultButton.Button1, MessageBoxOptions.DefaultDesktopOnly);
+            SeamlessClient.TryShow(Response.ToString());
+
+            if (Result == DialogResult.Yes)
+            {
+                SeamlessClient.TryShow("Client wants to update!");
+                string DownloadPath = Path.Combine(PluginFolder, MainReleaseFile.Name);
+                Client.DownloadFile(new Uri(MainReleaseFile.ZipURL), DownloadPath);
+
+                if (!File.Exists(DownloadPath))
+                {
+                    SeamlessClient.TryShow("Failed to download zip!");
+                    return;
+                }
+
+                if (ExtractAndReplace(DownloadPath))
+                {
+                    StringBuilder ErrorResponse = new StringBuilder();
+                    ErrorResponse.AppendLine("There was an error during the extraction proccess! Check your logs for more information!");
+                    ErrorResponse.AppendLine();
+                    ErrorResponse.AppendLine("You can download manually here:");
+                    ErrorResponse.AppendLine(Release.GitHubPage);
+                    SeamlessClient.TryShow(ErrorResponse.ToString());
+                    MessageBox.Show(ErrorResponse.ToString(), $"Failed to update plugin to v{ Release.LatestVersion}!", MessageBoxButtons.OK, MessageBoxIcon.Error, MessageBoxDefaultButton.Button1, MessageBoxOptions.DefaultDesktopOnly);
+                    return;
+                }
+
             }
             else
             {
-                ExtractAndReplace();
+                SeamlessClient.TryShow("Client skipped Update!");
+                return;
             }
 
 
-           
+
 
         }
 
 
-        private void UpdateMessageBoxCallback(MyGuiScreenMessageBox.ResultEnum Result)
-        {
-            //Update chcker
-            if (Result == MyGuiScreenMessageBox.ResultEnum.YES)
-            {
-                SeamlessClient.TryShow("Clicked Yes");
-                //If they clicked yes, ping the update server again and request new file
-                DownloadUpdate = true;
-                PingUpdateServer();
-                return;
-            }
 
-            if (Result == MyGuiScreenMessageBox.ResultEnum.NO || Result == MyGuiScreenMessageBox.ResultEnum.CANCEL)
-            {
-                //Return. (Do not update)
-                SeamlessClient.TryShow("Clicked No or Cancel");
-                return;
-            }
-
-        }
 
 
         private void DeleteOLDFiles()
         {
-            foreach(var OLDFile in Directory.GetFiles(PluginFolder, "*.old"))
+            foreach (var OLDFile in Directory.GetFiles(PluginFolder, "*.old"))
             {
                 File.Delete(OLDFile);
             }
@@ -154,43 +178,53 @@ namespace SeamlessClientPlugin.Updater
         }
 
 
-        private void ExtractAndReplace()
+        private bool ExtractAndReplace(string ZipPath)
         {
-            //save latest zip in dir
-            string ZipPath = Path.Combine(PluginFolder, "Latest.zip");
-            File.WriteAllBytes(ZipPath, RecievedZipMememory);
-
-
-            //Start extractor
-            using (ZipArchive archive = ZipFile.OpenRead(ZipPath))
+            try
             {
-                foreach (ZipArchiveEntry entry in archive.Entries)
+
+                //Start extractor
+                using (ZipArchive archive = ZipFile.OpenRead(ZipPath))
                 {
-                    string ExsistingFilePath = Path.Combine(PluginFolder, entry.Name);
-                    string OldFilePath = Path.Combine(PluginFolder, entry.Name+".old");
-                    SeamlessClient.TryShow(ExsistingFilePath + "=>" + OldFilePath);
+                    foreach (ZipArchiveEntry entry in archive.Entries)
+                    {
+                        string ExsistingFilePath = Path.Combine(PluginFolder, entry.Name);
+                        string OldFilePath = Path.Combine(PluginFolder, entry.Name + ".old");
 
+                        //No need to extract to files that dont exsist
+                        if (!File.Exists(ExsistingFilePath))
+                            continue;
 
-                    if (File.Exists(OldFilePath))
-                        File.Delete(OldFilePath);
+                        SeamlessClient.TryShow(ExsistingFilePath + "=>" + OldFilePath);
 
-                    File.Move(ExsistingFilePath, OldFilePath);
-                    entry.ExtractToFile(ExsistingFilePath, true);
-                    //File.Delete(OldFilePath);
+                        if (File.Exists(OldFilePath))
+                            File.Delete(OldFilePath);
+
+                        File.Move(ExsistingFilePath, OldFilePath);
+                        entry.ExtractToFile(ExsistingFilePath, false);
+                        //File.Delete(OldFilePath);
+                    }
                 }
+
+                //Delete latest zip
+                File.Delete(ZipPath);
+
+                //Restart client
+                SeamlessClient.TryShow("UpdateComplete!");
+                SeamlessClient.RestartClientAfterUpdate();
+                return true;
+
             }
-
-            //Delete latest zip
-            File.Delete(ZipPath);
-
-            //Restart client
-            SeamlessClient.TryShow("UpdateComplete!");
-            SeamlessClient.RestartClientAfterUpdate();
+            catch (Exception ex)
+            {
+                SeamlessClient.TryShow(ex.ToString());
+                return false;
+            }
         }
 
         private bool NeedsUpdate(string ClientVersion, string ServerVersion)
         {
-           
+
 
             Version Client = new Version(ClientVersion);
             Version Latest = new Version(ServerVersion);
@@ -199,16 +233,19 @@ namespace SeamlessClientPlugin.Updater
             if (result > 0)
             {
                 //Console.WriteLine("Client is greater");
+                SeamlessClient.TryShow("Client version is greater than latest! Wow!");
                 return false;
             }
             else if (result < 0)
             {
                 //Console.WriteLine("Latest is greater");
+                SeamlessClient.TryShow("Client version is out-of-date!");
                 return true;
             }
             else
             {
                 //Console.WriteLine("versions are equal");
+                SeamlessClient.TryShow("Client is up-to-date!");
                 return false;
             }
         }
@@ -296,5 +333,45 @@ namespace SeamlessClientPlugin.Updater
             }
         }
     }
+
+    [DataContract]
+    public class GithubRelease
+    {
+
+        [DataMember(Name = "url")]
+        public string GitHubPage { get; set; }
+
+        [DataMember(Name = "name")]
+        public string Name { get; set; }
+
+
+        [DataMember(Name = "tag_name")]
+        public string LatestVersion { get; set; }
+
+        [DataMember(Name = "prerelease")]
+        public bool Beta { get; set; }
+
+        [DataMember(Name = "body")]
+        public string Description { get; set; }
+
+        [DataMember(Name = "assets")]
+        public GitZipFile[] Content { get; set; }
+
+    }
+
+    [DataContract]
+    public class GitZipFile
+    {
+        [DataMember(Name = "name")]
+        public string Name { get; set; }
+
+        [DataMember(Name = "browser_download_url")]
+        public string ZipURL { get; set; }
+
+        [DataMember(Name = "size")]
+        public int Size { get; set; }
+
+    }
+
 
 }

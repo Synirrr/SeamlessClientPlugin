@@ -22,6 +22,7 @@ using System.Windows.Forms;
 using VRage.Input;
 using VRage.Plugins;
 using VRage.Utils;
+using VRageMath;
 using VRageRender;
 
 namespace SeamlessClientPlugin
@@ -106,7 +107,7 @@ namespace SeamlessClientPlugin
 
 
 
-        public static string Version = "1.2.0";
+        public static string Version = "1.2.10";
         private bool Initilized = false;
         private bool SentPingResponse = false;
         public const ushort SeamlessClientNetID = 2936;
@@ -117,6 +118,8 @@ namespace SeamlessClientPlugin
 
         public static bool IsSwitching = false;
         public static bool RanJoin = false;
+
+     
 
         public static Action JoinAction = () => { };
 
@@ -136,15 +139,11 @@ namespace SeamlessClientPlugin
         {
             TryShow("Running Seamless Client Plugin v[" + Version + "]");
 
-            UpdateChecker Checker = new UpdateChecker(Version, false);
-
+            UpdateChecker Checker = new UpdateChecker(false);
             Task UpdateChecker = new Task(() => Checker.PingUpdateServer());
             UpdateChecker.Start();
 
-
-
-            
-
+           
 
            
 
@@ -165,8 +164,14 @@ namespace SeamlessClientPlugin
             try
             {
 
+
+
                 ClientMessage PingServer = new ClientMessage(ClientMessageType.FirstJoin);
                 MyAPIGateway.Multiplayer?.SendMessageToServer(SeamlessClientNetID, Utilities.Utility.Serialize(PingServer));
+
+
+                
+
             }
             catch (Exception ex)
             {
@@ -185,6 +190,7 @@ namespace SeamlessClientPlugin
                 TryShow("Initilizing Communications!");
                 RunInitilizations();
                 Initilized = true;
+                
             }
             //OnNewPlayerRequest
             //throw new NotImplementedException();

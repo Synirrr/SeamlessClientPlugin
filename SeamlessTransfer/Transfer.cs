@@ -7,6 +7,7 @@ using Sandbox.Game.Gui;
 using Sandbox.Game.Multiplayer;
 using Sandbox.Game.World;
 using Sandbox.Graphics.GUI;
+using Sandbox.ModAPI;
 using SeamlessClientPlugin.ClientMessages;
 using System;
 using System.Collections.Generic;
@@ -86,18 +87,30 @@ namespace SeamlessClientPlugin.SeamlessTransfer
 
         private void MyGameService_OnPingServerResponded(object sender, MyGameServerItem e)
         {
+           
+
             MyGameService.OnPingServerResponded -= MyGameService_OnPingServerResponded;
             MyGameService.OnPingServerFailedToRespond -= MyGameService_OnPingServerFailedToRespond;
             SeamlessClient.TryShow("ServerPing Successful! Attempting to connect to lobby: " + e.GameID);
 
 
             LoadServer.LoadWorldData(e, WorldRequest.DeserializeWorldData());
+
+
             MySandboxGame.Static.Invoke(delegate
             {
+                StringBuilder Builder = new StringBuilder();
+                Builder.AppendLine("Please be patient! Some users can spend a minute switching servers... others may be able to swtich faster. Lots of factors to consider.");
+                Builder.AppendLine();
+                Builder.AppendLine("Sitting in spectator is perfectly normal for a few seconds!");
+
+                MyAPIGateway.Utilities.ShowMissionScreen("Switching Servers!",null, null, Builder.ToString(), null, "Ok!");
                 //MySessionLoader.UnloadAndExitToMenu();
                 UnloadCurrentServer();
+
                 //MyJoinGameHelper.JoinGame(e, true);
                 LoadServer.ResetMPClient();
+
                 ClearEntities();
                 //ReloadPatch.SeamlessSwitch = false;
             }, "SeamlessClient");
