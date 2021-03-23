@@ -41,9 +41,6 @@
     <Reference Include="0Harmony, Version=2.0.4.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\Nexus\packages\Lib.Harmony.2.0.4\lib\net472\0Harmony.dll</HintPath>
     </Reference>
-    <Reference Include="AutoUpdater.NET, Version=1.6.4.0, Culture=neutral, PublicKeyToken=501435c91b35f4bc, processorArchitecture=MSIL">
-      <HintPath>packages\Autoupdater.NET.Official.1.6.4\lib\net45\AutoUpdater.NET.dll</HintPath>
-    </Reference>
     <Reference Include="NLog">
       <HintPath>..\..\..\Desktop\TorchServers\torch-server\NLog.dll</HintPath>
       <Private>False</Private>
