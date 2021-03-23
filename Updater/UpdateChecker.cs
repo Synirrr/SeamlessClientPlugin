@@ -1,5 +1,4 @@
-﻿using AutoUpdaterDotNET;
-using ProtoBuf;
+﻿using ProtoBuf;
 using Sandbox.Graphics.GUI;
 using System;
 using System.Collections.Generic;
@@ -23,17 +22,9 @@ namespace SeamlessClientPlugin.Updater
         public string PluginFolder;
         public string CurrentVersion;
         public bool DownloadUpdate;
-
-        const int PORT_NO = 27010;
-        //AWS Website server
-        const string SERVER_IP = "3.80.137.183";
-
         private string GitHubAPILink = "https://api.github.com/repos/Casimir255/SeamlessClientPlugin/releases/latest";
-        private string GitHubZipLink;
+
         private WebClient Client;
-
-
-        private byte[] RecievedZipMememory;
 
 
 
