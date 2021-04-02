@@ -470,7 +470,6 @@ namespace SeamlessClientPlugin.SeamlessTransfer
                 }catch(Exception ex)
                 {
                     SeamlessClient.TryShow(ex.ToString());
-
                 }
 
 

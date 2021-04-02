@@ -127,7 +127,24 @@ namespace SeamlessClientPlugin.SeamlessTransfer
             if (MyMultiplayer.Static != null)
             {
                 MyHud.Chat.UnregisterChat(MyMultiplayer.Static);
-                
+
+
+                try
+                {
+                    //Could throw error when there are no gps points
+                    var PCollection = MySession.Static.Gpss[MySession.Static.LocalPlayerId];
+                    PCollection?.Clear();
+                    SeamlessClient.TryShow(PCollection.Count + "registered GPS points");
+                }
+                catch(Exception ex)
+                {
+                    SeamlessClient.TryShow(ex.ToString());
+                }
+
+
+                MyHud.GpsMarkers.Clear();
+
+
                 MyMultiplayer.Static.ReplicationLayer.Disconnect();
                 MyMultiplayer.Static.ReplicationLayer.Dispose();
 
@@ -136,13 +153,10 @@ namespace SeamlessClientPlugin.SeamlessTransfer
 
                 //Sync.Clients.Clear();
 
-
-                var PCollection = MySession.Static.Gpss[MySession.Static.LocalPlayerId];
-                PCollection.Clear();
-                MyHud.GpsMarkers.Clear();
+                
                 
 
-                SeamlessClient.TryShow(PCollection.Count + "registered GPS points");
+                
                 // MyGuiSandbox.UnloadContent();
             }
         }

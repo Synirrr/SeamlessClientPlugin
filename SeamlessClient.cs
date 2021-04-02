@@ -108,6 +108,9 @@ namespace SeamlessClientPlugin
 
 
         public static string Version = "1.2.10";
+        public static bool Debug = true;
+
+
         private bool Initilized = false;
         private bool SentPingResponse = false;
         public const ushort SeamlessClientNetID = 2936;
@@ -241,8 +244,8 @@ namespace SeamlessClientPlugin
 
         public static void TryShow(string message)
         {
-           // if (MySession.Static?.LocalHumanPlayer != null)
-                //MyAPIGateway.Utilities?.ShowMessage("NetworkClient", message);
+            if (MySession.Static?.LocalHumanPlayer != null && Debug)
+                MyAPIGateway.Utilities?.ShowMessage("NetworkClient", message);
 
             MyLog.Default?.WriteLineAndConsole($"SeamlessClient: {message}");
         }
