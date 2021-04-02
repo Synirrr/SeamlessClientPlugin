@@ -116,6 +116,9 @@ namespace SeamlessClientPlugin.SeamlessTransfer
             }, "SeamlessClient");
             return;
             
+
+            
+
         }
 
 
@@ -127,7 +130,8 @@ namespace SeamlessClientPlugin.SeamlessTransfer
             if (MyMultiplayer.Static != null)
             {
                 MyHud.Chat.UnregisterChat(MyMultiplayer.Static);
-
+                //OnPlayerCreated
+                //OnConnectedClient
 
                 try
                 {

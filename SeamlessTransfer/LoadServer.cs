@@ -143,6 +143,8 @@ namespace SeamlessClientPlugin.SeamlessTransfer
             MethodInfo LoadingAction = typeof(MySessionLoader).GetMethod("LoadMultiplayerSession", BindingFlags.Public | BindingFlags.Static);
             Patcher.Patch(LoadingAction, prefix: new HarmonyMethod(GetPatchMethod(nameof(LoadMultiplayerSession))));
 
+
+            
         }
 
 
@@ -193,6 +195,8 @@ namespace SeamlessClientPlugin.SeamlessTransfer
 
         private static bool LoadMultiplayerSession(MyObjectBuilder_World world, MyMultiplayerBase multiplayerSession)
         {
+
+
             MyLog.Default.WriteLine("LoadSession() - Start");
             if (!MyWorkshop.CheckLocalModsAllowed(world.Checkpoint.Mods, allowLocalMods: false))
             {
