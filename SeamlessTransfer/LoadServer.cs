@@ -304,6 +304,8 @@ namespace SeamlessClientPlugin.SeamlessTransfer
 
                 //MyScreenManager.CloseScreen(GUIScreenChat);
                 MyHud.Chat.RegisterChat(MyMultiplayer.Static);
+                //MySession.SetSpectatorPositionFromServer(SeamlessClient.PreviousPosition ?? Vector3D.Zero);
+                MySession.Static.SetCameraController(MyCameraControllerEnum.SpectatorFixed);
 
             }
             catch (Exception ex)

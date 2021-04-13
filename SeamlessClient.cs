@@ -117,14 +117,8 @@ namespace SeamlessClientPlugin
         private System.Timers.Timer PingTimer = new System.Timers.Timer(3000);
 
         public static LoadServer Server = new LoadServer();
-
-
         public static bool IsSwitching = false;
         public static bool RanJoin = false;
-
-     
-
-        public static Action JoinAction = () => { };
 
 
         public void Dispose()
@@ -219,11 +213,8 @@ namespace SeamlessClientPlugin
                     IsSwitching = true;
                     TransferMessage.PingServerAndBeginRedirect();
                     RanJoin = false;
+                    MySession.Static.SetCameraController(VRage.Game.MyCameraControllerEnum.SpectatorFixed);
                     //DisposeInitilizations();
-                }
-                else if (Recieved.MessageType == ClientMessageType.FirstJoin)
-                {
-
                 }
             }
             catch (Exception ex)
