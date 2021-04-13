@@ -166,15 +166,8 @@ namespace SeamlessClientPlugin
             //TryShow("Sending PluginVersion to Server!");
             try
             {
-
-
-
                 ClientMessage PingServer = new ClientMessage(ClientMessageType.FirstJoin);
                 MyAPIGateway.Multiplayer?.SendMessageToServer(SeamlessClientNetID, Utilities.Utility.Serialize(PingServer));
-
-
-                
-
             }
             catch (Exception ex)
             {
@@ -256,14 +249,10 @@ namespace SeamlessClientPlugin
             try
             {
                 TryShow("Restarting Client!");
-
                 string exe = Assembly.GetEntryAssembly().Location;
-                
-
                 Process currentProcess = Process.GetCurrentProcess();
 
                 string[] CommandArgs = Environment.GetCommandLineArgs();
-
                 string NewCommandLine = "";
                 for(int i = 1; i < CommandArgs.Length; i++)
                 {
@@ -271,10 +260,7 @@ namespace SeamlessClientPlugin
                 }
 
                 TryShow(NewCommandLine);
-
                 Process.Start(exe, NewCommandLine);
-
-               
                 currentProcess.Kill();
             }
             catch (Exception ex)

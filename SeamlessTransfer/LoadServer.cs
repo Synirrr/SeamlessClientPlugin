@@ -54,6 +54,8 @@ namespace SeamlessClientPlugin.SeamlessTransfer
         private static readonly Type MySessionType = Type.GetType("Sandbox.Game.World.MySession, Sandbox.Game");
         private static readonly Type VirtualClientsType = Type.GetType("Sandbox.Engine.Multiplayer.MyVirtualClients, Sandbox.Game");
         private static readonly Type GUIScreenChat = Type.GetType("Sandbox.Game.Gui.MyGuiScreenChat, Sandbox.Game");
+        private static readonly Type GUIScreenDPAD = Type.GetType("Sandbox.Game.Screens.Helpers.MyGuiControlDPad, Sandbox.Game");
+
 
         private static Harmony Patcher = new Harmony("SeamlessClientReUnload");
         private static MyGameServerItem Server;
@@ -501,6 +503,10 @@ namespace SeamlessClientPlugin.SeamlessTransfer
 
                 SeamlessClient.TryShow("OnlinePlayers: " + MySession.Static.Players.GetOnlinePlayers().Count);
                 SeamlessClient.TryShow("Loading Complete!");
+
+
+                //Recreate all controls... Will fix weird gui/paint/crap
+                MyGuiScreenHudSpace.Static.RecreateControls(true);
 
             }
             catch (Exception Ex)
