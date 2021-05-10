@@ -9,7 +9,6 @@ using Sandbox.Graphics.GUI;
 using Sandbox.ModAPI;
 using SeamlessClientPlugin.ClientMessages;
 using SeamlessClientPlugin.SeamlessTransfer;
-using SeamlessClientPlugin.Updater;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -135,15 +134,7 @@ namespace SeamlessClientPlugin
         public void Init(object gameInstance)
         {
             TryShow("Running Seamless Client Plugin v[" + Version + "]");
-
-            UpdateChecker Checker = new UpdateChecker(false);
-            Task UpdateChecker = new Task(() => Checker.PingUpdateServer());
-            UpdateChecker.Start();
-
-           
-
-           
-
+            
             // Reload = new ReloadPatch();
             //Patching goes here
 
