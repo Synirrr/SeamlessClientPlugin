@@ -30,7 +30,9 @@ namespace SeamlessClientPlugin.SeamlessTransfer
                 return;
             }
 
-    
+
+
+   
             SeamlessClient.TryShow("Beginning Redirect to server: " + Transfer.TargetServerID);
             MyGameService.OnPingServerResponded += PingResponded;
             MyGameService.OnPingServerFailedToRespond += FailedToRespond;
