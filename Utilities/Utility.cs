@@ -25,6 +25,7 @@ namespace SeamlessClientPlugin.Utilities
             }
         }
 
+
         public static T Deserialize<T>(byte[] data)
         {
             if (data == null)
@@ -35,7 +36,6 @@ namespace SeamlessClientPlugin.Utilities
                 return Serializer.Deserialize<T>(m);
             }
         }
-
 
         public static dynamic CastToReflected(this object o, Type type)
         {

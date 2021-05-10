@@ -1,6 +1,7 @@
 ﻿using ProtoBuf;
 using Sandbox.Game.World;
 using Sandbox.ModAPI;
+using SeamlessClientPlugin.SeamlessTransfer;
 using SeamlessClientPlugin.Utilities;
 using System;
 using System.Collections.Generic;
@@ -31,15 +32,13 @@ namespace SeamlessClientPlugin.ClientMessages
         [ProtoMember(5)]
         public string PluginVersion = "0";
 
-
-
         public ClientMessage(ClientMessageType Type)
         {
             MessageType = Type;
 
             if (MyAPIGateway.Multiplayer != null && !MyAPIGateway.Multiplayer.IsServer)
             {
-                if(MyAPIGateway.Session.LocalHumanPlayer == null)
+                if (MyAPIGateway.Session.LocalHumanPlayer == null)
                 {
                     return;
                 }
@@ -57,12 +56,15 @@ namespace SeamlessClientPlugin.ClientMessages
             MessageData = Utility.Serialize(Data);
         }
 
-        public T DeserializeData<T>()
+
+        public Transfer GetTransferData()
         {
             if (MessageData == null)
-                return default(T);
+                return default(Transfer);
 
-            return Utility.Deserialize<T>(MessageData);
+            return Utility.Deserialize<Transfer>(MessageData);
+
         }
+
     }
 }

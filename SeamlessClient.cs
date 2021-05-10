@@ -108,56 +108,23 @@ namespace SeamlessClientPlugin
 
         public static string Version = "1.2.12";
         public static bool Debug = false;
+        private static bool Initilized = false;
 
 
-        private bool Initilized = false;
-        private bool SentPingResponse = false;
+
         public const ushort SeamlessClientNetID = 2936;
-        private System.Timers.Timer PingTimer = new System.Timers.Timer(3000);
+        private static System.Timers.Timer PingTimer = new System.Timers.Timer(3000);
 
-        public static LoadServer Server = new LoadServer();
         public static bool IsSwitching = false;
         public static bool RanJoin = false;
 
 
-        public void Dispose()
-        {
-#pragma warning disable CS0618 // Type or member is obsolete
-            MyAPIGateway.Multiplayer?.UnregisterMessageHandler(SeamlessClientNetID, MessageHandler);
-#pragma warning restore CS0618 // Type or member is obsolete
-            Initilized = false;
-            SentPingResponse = false;
-            PingTimer.Stop();
-            //throw new NotImplementedException();
-        }
 
         public void Init(object gameInstance)
         {
             TryShow("Running Seamless Client Plugin v[" + Version + "]");
-            
-            // Reload = new ReloadPatch();
-            //Patching goes here
-
-
             PingTimer.Elapsed += PingTimer_Elapsed;
             PingTimer.Start();
-            //throw new NotImplementedException();
-        }
-
-        
-
-        private void PingTimer_Elapsed(object sender, ElapsedEventArgs e)
-        {
-            //TryShow("Sending PluginVersion to Server!");
-            try
-            {
-                ClientMessage PingServer = new ClientMessage(ClientMessageType.FirstJoin);
-                MyAPIGateway.Multiplayer?.SendMessageToServer(SeamlessClientNetID, Utilities.Utility.Serialize(PingServer));
-            }
-            catch (Exception ex)
-            {
-                TryShow(ex.ToString());
-            }
         }
 
 
@@ -170,8 +137,8 @@ namespace SeamlessClientPlugin
             {
                 TryShow("Initilizing Communications!");
                 RunInitilizations();
-                Initilized = true;
-                
+
+
             }
             //OnNewPlayerRequest
             //throw new NotImplementedException();
@@ -179,35 +146,15 @@ namespace SeamlessClientPlugin
 
 
 
-        public static void RunInitilizations()
-        {
-#pragma warning disable CS0618 // Type or member is obsolete
-            MyAPIGateway.Multiplayer.RegisterMessageHandler(SeamlessClientNetID, MessageHandler);
-#pragma warning restore CS0618 // Type or member is obsolete
-            //We need to initiate ping request
-        }
-
-        public static void DisposeInitilizations()
-        {
-            MyAPIGateway.Multiplayer.UnregisterMessageHandler(SeamlessClientNetID, MessageHandler);
-        }
 
 
-        private static void MessageHandler(byte[] bytes)
+        private void PingTimer_Elapsed(object sender, ElapsedEventArgs e)
         {
+            // Terrible way to make sure server knows we are running seamless client 
             try
             {
-                ClientMessage Recieved = Utilities.Utility.Deserialize<ClientMessage>(bytes);
-                if (Recieved.MessageType == ClientMessageType.TransferServer)
-                {
-                    Transfer TransferMessage = Recieved.DeserializeData<Transfer>();
-                    IsSwitching = true;
-                    TransferMessage.PingServerAndBeginRedirect();
-                    RanJoin = false;
-                    MySession.Static.SetCameraController(VRage.Game.MyCameraControllerEnum.SpectatorFixed);
-                    
-                    //DisposeInitilizations();
-                }
+                ClientMessage PingServer = new ClientMessage(ClientMessageType.FirstJoin);
+                MyAPIGateway.Multiplayer?.SendMessageToServer(SeamlessClientNetID, Utilities.Utility.Serialize(PingServer));
             }
             catch (Exception ex)
             {
@@ -216,6 +163,47 @@ namespace SeamlessClientPlugin
         }
 
 
+    
+
+
+
+      
+
+
+
+        public static void RunInitilizations()
+        {
+            TryShow("Initilizing Communications!");
+            MyAPIGateway.Multiplayer.RegisterSecureMessageHandler(SeamlessClientNetID, MessageHandler);
+            Initilized = true;
+        }
+
+        public static void DisposeInitilizations()
+        {
+            PingTimer.Stop();
+            MyAPIGateway.Multiplayer.UnregisterSecureMessageHandler(SeamlessClientNetID, MessageHandler);
+            Initilized = false;
+            
+        }
+
+
+        private static void MessageHandler(ushort obj1, byte[] obj2, ulong obj3, bool obj4)
+        {
+            try
+            {
+                ClientMessage Recieved = Utilities.Utility.Deserialize<ClientMessage>(obj2);
+                if (Recieved.MessageType == ClientMessageType.TransferServer)
+                {
+                    Transfer TransferMessage = Recieved.GetTransferData();
+
+                    ServerPing.StartServerPing(TransferMessage);
+                }
+            }
+            catch (Exception ex)
+            {
+                TryShow(ex.ToString());
+            }
+        }
 
 
         public static void TryShow(string message)
@@ -226,30 +214,9 @@ namespace SeamlessClientPlugin
             MyLog.Default?.WriteLineAndConsole($"SeamlessClient: {message}");
         }
 
-
-        public static void RestartClientAfterUpdate()
+        public void Dispose()
         {
-            try
-            {
-                TryShow("Restarting Client!");
-                string exe = Assembly.GetEntryAssembly().Location;
-                Process currentProcess = Process.GetCurrentProcess();
-
-                string[] CommandArgs = Environment.GetCommandLineArgs();
-                string NewCommandLine = "";
-                for(int i = 1; i < CommandArgs.Length; i++)
-                {
-                    NewCommandLine += " "+ CommandArgs[i];
-                }
-
-                TryShow(NewCommandLine);
-                Process.Start(exe, NewCommandLine);
-                currentProcess.Kill();
-            }
-            catch (Exception ex)
-            {
-                TryShow("Restarting Client error!");
-            }
+            DisposeInitilizations();
         }
     }
 }

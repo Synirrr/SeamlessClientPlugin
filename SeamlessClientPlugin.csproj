@@ -162,9 +162,10 @@
     <Compile Include="Messages\WorldRequest.cs" />
     <Compile Include="SeamlessClient.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="SeamlessTransfer\LoadServer.cs" />
-    <Compile Include="SeamlessTransfer\Transfer.cs" />
-    <Compile Include="Updater\UpdateChecker.cs" />
+    <Compile Include="SeamlessTransfer\PingServer.cs" />
+    <Compile Include="Messages\Transfer.cs" />
+    <Compile Include="SeamlessTransfer\Patches.cs" />
+    <Compile Include="SeamlessTransfer\SwitchServers.cs" />
     <Compile Include="Utilities\Utility.cs" />
   </ItemGroup>
   <ItemGroup>
