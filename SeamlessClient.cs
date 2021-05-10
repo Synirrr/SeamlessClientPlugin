@@ -122,6 +122,12 @@ namespace SeamlessClientPlugin
 
         public void Init(object gameInstance)
         {
+            Utilities.UpdateChecker Checker = new Utilities.UpdateChecker(false);
+            Task UpdateChecker = new Task(() => Checker.PingUpdateServer());
+            UpdateChecker.Start();
+
+
+
             Patches.GetPatches();
             TryShow("Running Seamless Client Plugin v[" + Version + "]");
             PingTimer.Elapsed += PingTimer_Elapsed;
@@ -206,6 +212,31 @@ namespace SeamlessClientPlugin
             }
         }
 
+
+        public static void RestartClientAfterUpdate()
+        {
+            try
+            {
+                TryShow("Restarting Client!");
+                string exe = Assembly.GetEntryAssembly().Location;
+                Process currentProcess = Process.GetCurrentProcess();
+
+                string[] CommandArgs = Environment.GetCommandLineArgs();
+                string NewCommandLine = "";
+                for (int i = 1; i < CommandArgs.Length; i++)
+                {
+                    NewCommandLine += " " + CommandArgs[i];
+                }
+
+                TryShow(NewCommandLine);
+                Process.Start(exe, NewCommandLine);
+                currentProcess.Kill();
+            }
+            catch (Exception ex)
+            {
+                TryShow("Restarting Client error!");
+            }
+        }
 
         public static void TryShow(string message)
         {
