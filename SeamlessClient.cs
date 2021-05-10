@@ -188,7 +188,7 @@ namespace SeamlessClientPlugin
         public static void DisposeInitilizations()
         {
             PingTimer.Stop();
-            MyAPIGateway.Multiplayer.UnregisterSecureMessageHandler(SeamlessClientNetID, MessageHandler);
+            MyAPIGateway.Multiplayer?.UnregisterSecureMessageHandler(SeamlessClientNetID, MessageHandler);
             Initilized = false;
             
         }
