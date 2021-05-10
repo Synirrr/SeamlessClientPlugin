@@ -20,6 +20,9 @@ namespace SeamlessClientPlugin.SeamlessTransfer
         public static void StartServerPing(Transfer ClientTransfer)
         {
             // We need to first ping the server to make sure its running and so we can get a connection
+            Transfer = ClientTransfer;
+            Request = Transfer.WorldRequest;
+
 
             if (Transfer.TargetServerID == 0)
             {
@@ -27,18 +30,11 @@ namespace SeamlessClientPlugin.SeamlessTransfer
                 return;
             }
 
-            Transfer = ClientTransfer;
-            Request = Transfer.WorldRequest;
-
-   
             SeamlessClient.TryShow("Beginning Redirect to server: " + Transfer.TargetServerID);
             MyGameService.OnPingServerResponded += PingResponded;
             MyGameService.OnPingServerFailedToRespond += FailedToRespond;
 
             MyGameService.PingServer(Transfer.IPAdress);
-
-
-
         }
 
         private static void PingResponded(object sender, MyGameServerItem e)
@@ -56,9 +52,7 @@ namespace SeamlessClientPlugin.SeamlessTransfer
         private static void FailedToRespond(object sender, EventArgs e)
         {
             // If the target server failed to respond, we need to exit/return to menu
-
             UnRegisterEvents();
-
         }
 
 
