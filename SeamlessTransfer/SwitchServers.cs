@@ -7,6 +7,7 @@ using Sandbox.Game.Gui;
 using Sandbox.Game.GUI;
 using Sandbox.Game.Multiplayer;
 using Sandbox.Game.World;
+using Sandbox.ModAPI;
 using SeamlessClientPlugin.Utilities;
 using System;
 using System.Collections.Concurrent;
@@ -98,7 +99,7 @@ namespace SeamlessClientPlugin.SeamlessTransfer
             RemoveOldEntities();
             StartEntitySync();
 
-
+            MyModAPIHelper.Initialize();
             // Allow the game to start proccessing incoming messages in the buffer
             MyMultiplayer.Static.StartProcessingClientMessages();
         }
@@ -107,12 +108,19 @@ namespace SeamlessClientPlugin.SeamlessTransfer
         private void LoadOnlinePlayers()
         {
             //Get This players ID
+
             MyPlayer.PlayerId? savingPlayerId = new MyPlayer.PlayerId(Sync.MyId);
             if (!savingPlayerId.HasValue)
             {
                 SeamlessClient.TryShow("SavingPlayerID is null! Creating Default!");
                 savingPlayerId = new MyPlayer.PlayerId(Sync.MyId);
             }
+            SeamlessClient.TryShow("Saving PlayerID: " + savingPlayerId.ToString());
+
+            Sync.Players.LoadConnectedPlayers(TargetWorld.Checkpoint, savingPlayerId);
+            Sync.Players.LoadControlledEntities(TargetWorld.Checkpoint.ControlledEntities, TargetWorld.Checkpoint.ControlledObject, savingPlayerId);
+            /*
+          
 
             SeamlessClient.TryShow("Saving PlayerID: " + savingPlayerId.ToString());
 
@@ -145,6 +153,8 @@ namespace SeamlessClientPlugin.SeamlessTransfer
                 }
             }
 
+            */
+
         }
 
         private void SetWorldSettings()
@@ -169,7 +179,7 @@ namespace SeamlessClientPlugin.SeamlessTransfer
             MySession.Static.WorldBoundaries = TargetWorld.Checkpoint.WorldBoundaries;
             MySession.Static.InGameTime = MyObjectBuilder_Checkpoint.DEFAULT_DATE;
             MySession.Static.ElapsedGameTime = new TimeSpan(TargetWorld.Checkpoint.ElapsedGameTime);
-
+            MySession.Static.Settings.EnableSpectator = false;
 
 
             MySession.Static.Password = TargetWorld.Checkpoint.Password;
@@ -248,16 +258,23 @@ namespace SeamlessClientPlugin.SeamlessTransfer
 
         private void LoadConnectedClients()
         {
+
+
+            Patches.LoadMembersFromWorld.Invoke(MySession.Static, new object[] { TargetWorld, MyMultiplayer.Static });
+
+
             //Re-Initilize Virtual clients
             object VirtualClientsValue = Patches.VirtualClients.GetValue(MySession.Static);
             Patches.InitVirtualClients.Invoke(VirtualClientsValue, null);
 
+            /*
             SeamlessClient.TryShow("Loading exsisting Members From World!");
             foreach (var Client in TargetWorld.Checkpoint.Clients)
             {
                 SeamlessClient.TryShow("Adding New Client: " + Client.Name);
                 Sync.Clients.AddClient(Client.SteamId, Client.Name);
-            }
+            }*/
+
         }
 
         private void StartEntitySync()
@@ -302,7 +319,7 @@ namespace SeamlessClientPlugin.SeamlessTransfer
             //Clear all old players and clients.
             Sync.Clients.Clear();
             Sync.Players.ClearPlayers();
-          
+
 
             MyHud.Chat.UnregisterChat(MyMultiplayer.Static);
             MySession.Static.Gpss.RemovePlayerGpss(MySession.Static.LocalPlayerId);
