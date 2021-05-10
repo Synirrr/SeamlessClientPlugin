@@ -214,6 +214,7 @@ namespace SeamlessClientPlugin
                     TransferMessage.PingServerAndBeginRedirect();
                     RanJoin = false;
                     MySession.Static.SetCameraController(VRage.Game.MyCameraControllerEnum.SpectatorFixed);
+                    
                     //DisposeInitilizations();
                 }
             }

@@ -27,8 +27,8 @@ using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
+using System.Timers;
 using VRage;
 using VRage.FileSystem;
 using VRage.Game;
@@ -54,6 +54,8 @@ namespace SeamlessClientPlugin.SeamlessTransfer
         private static readonly Type MySessionType = Type.GetType("Sandbox.Game.World.MySession, Sandbox.Game");
         private static readonly Type VirtualClientsType = Type.GetType("Sandbox.Engine.Multiplayer.MyVirtualClients, Sandbox.Game");
         private static readonly Type GUIScreenChat = Type.GetType("Sandbox.Game.Gui.MyGuiScreenChat, Sandbox.Game");
+        private static readonly Type MyMultiplayerClientBase = Type.GetType("Sandbox.Engine.Multiplayer.MyMultiplayerClientBase, Sandbox.Game");
+
 
 
         private static Harmony Patcher = new Harmony("SeamlessClientReUnload");
@@ -68,6 +70,7 @@ namespace SeamlessClientPlugin.SeamlessTransfer
         public static ConstructorInfo SyncLayerConstructor;
         public static ConstructorInfo TransportLayerConstructor;
         public static ConstructorInfo MySessionConstructor;
+        public static ConstructorInfo MyMultiplayerClientBaseConstructor;
 
         //Reflected Methods
         public static FieldInfo VirtualClients;
@@ -80,20 +83,18 @@ namespace SeamlessClientPlugin.SeamlessTransfer
         public static MethodInfo LoadPlayerInternal;
         public static MethodInfo LoadMembersFromWorld;
 
+        public static FieldInfo DisconnectedClients;
+        public static FieldInfo MClients;
+        public static PropertyInfo MySessionLayer;
+
         public static MethodInfo LoadMultiplayer;
+
+        private static ulong LocalSteamID;
 
 
         public LoadServer()
         {
             InitiatePatches();
-
-
-
-
-            //TargetWorld = World;
-            //Server = e;
-
-
         }
 
 
@@ -109,6 +110,22 @@ namespace SeamlessClientPlugin.SeamlessTransfer
             SyncLayerConstructor = SyncLayerType?.GetConstructor(BindingFlags.Instance | BindingFlags.NonPublic, null, new Type[1] { MyTransportLayerType }, null);
             TransportLayerConstructor = MyTransportLayerType?.GetConstructor(BindingFlags.Instance | BindingFlags.Public, null, new Type[1] { typeof(int) }, null);
             MySessionConstructor = MySessionType?.GetConstructor(BindingFlags.Instance | BindingFlags.NonPublic, null, new Type[2] { typeof(MySyncLayer), typeof(bool) }, null);
+            MyMultiplayerClientBaseConstructor = MyMultiplayerClientBase?.GetConstructor(BindingFlags.Instance | BindingFlags.NonPublic, null, new Type[] { typeof(MySyncLayer) }, null);
+
+            
+
+            MethodInfo ClientJoined = ClientType.GetMethod("OnClientConnected", BindingFlags.Instance | BindingFlags.NonPublic);
+            MethodInfo ClientLeft = SyncLayerType?.GetMethod("OnClientLeft", BindingFlags.Instance | BindingFlags.NonPublic);
+
+            Timer ClientChecker = new Timer(5000);
+            ClientChecker.Elapsed += ClientChecker_Elapsed;
+            ClientChecker.Start();
+
+
+
+            //Patcher.Patch(ClientJoined, prefix: new HarmonyMethod(GetPatchMethod(nameof(OnClientJoined))));
+            Patcher.Patch(ClientLeft, prefix: new HarmonyMethod(GetPatchMethod(nameof(OnClientLeft))));
+
 
             if (ClientConstructor == null)
             {
@@ -131,6 +148,15 @@ namespace SeamlessClientPlugin.SeamlessTransfer
             }
 
             RemovePlayerFromDictionary = typeof(MyPlayerCollection).GetMethod("RemovePlayerFromDictionary", BindingFlags.Instance | BindingFlags.NonPublic);
+
+
+            DisconnectedClients = typeof(MyClientCollection).GetField("m_disconnectedClients", BindingFlags.Instance | BindingFlags.NonPublic);
+            MClients = typeof(MyClientCollection).GetField("m_clients", BindingFlags.Instance | BindingFlags.NonPublic);
+
+
+            MySessionLayer = typeof(MySession).GetProperty("SyncLayer", BindingFlags.Instance | BindingFlags.Public);
+
+
             VirtualClients = typeof(MySession).GetField("VirtualClients", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
             InitVirtualClients = VirtualClientsType.GetMethod("Init", BindingFlags.Instance | BindingFlags.Public);
             LoadPlayerInternal = typeof(MyPlayerCollection).GetMethod("LoadPlayerInternal", BindingFlags.Instance | BindingFlags.NonPublic);
@@ -140,12 +166,11 @@ namespace SeamlessClientPlugin.SeamlessTransfer
             MPlayerGPSCollection = typeof(MyPlayerCollection).GetField("m_players", BindingFlags.Instance | BindingFlags.NonPublic);
             LoadMultiplayer = typeof(MySession).GetMethod("LoadMultiplayer", BindingFlags.Static | BindingFlags.NonPublic);
 
-           
+
+
+
             MethodInfo LoadingAction = typeof(MySessionLoader).GetMethod("LoadMultiplayerSession", BindingFlags.Public | BindingFlags.Static);
             Patcher.Patch(LoadingAction, prefix: new HarmonyMethod(GetPatchMethod(nameof(LoadMultiplayerSession))));
-
-
-            
         }
 
 
@@ -183,7 +208,8 @@ namespace SeamlessClientPlugin.SeamlessTransfer
                     }
                 }
 
-            }catch(Exception ex)
+            }
+            catch (Exception ex)
             {
                 SeamlessClient.TryShow(ex.ToString());
             }
@@ -222,7 +248,7 @@ namespace SeamlessClientPlugin.SeamlessTransfer
 
                     MySessionLoader.StartLoading(delegate
                     {
-                        
+
                         LoadMultiplayer.Invoke(null, new object[] { world, multiplayerSession });
                         //MySession.LoadMultiplayer(world, multiplayerSession);
                     }, null, CustomBackgroundImage, null);
@@ -258,16 +284,69 @@ namespace SeamlessClientPlugin.SeamlessTransfer
         {
             if (SeamlessClient.IsSwitching && msg.JoinResult == JoinResult.OK)
             {
-                SeamlessClient.TryShow("User Joined! Result: "+msg.JoinResult.ToString());
+                SeamlessClient.TryShow("User Joined! Result: " + msg.JoinResult.ToString());
+
+                
+                if(MySessionLayer == null)
+                {
+                    SeamlessClient.TryShow("Null SessionLayer FieldInfo");
+                }
+
+
+                if (MySession.Static == null)
+                {
+                    SeamlessClient.TryShow("Null MySession.Static");
+                }
+
+                if (MyMultiplayer.Static.SyncLayer == null)
+                {
+                    SeamlessClient.TryShow("Null MyMultiplayer.Static.SyncLayer");
+                }
+
+                MySessionLayer.SetValue(MySession.Static , MyMultiplayer.Static.SyncLayer);
+
+
+
+
+
+
+
                 ForceClientConnection();
-            }else if (SeamlessClient.IsSwitching && msg.JoinResult != JoinResult.OK)
+                MyMultiplayer.Static.StartProcessingClientMessages();
+
+            }
+            else if (SeamlessClient.IsSwitching && msg.JoinResult != JoinResult.OK)
             {
                 SeamlessClient.TryShow("Failed to join server! Reason: " + msg.JoinResult.ToString());
-                MySession.Static.Unload();
+                MySession.Static?.Unload();
             }
         }
 
 
+        private static void OnClientJoined(MyPacket packet)
+        {
+            ConnectedClientDataMsg msg = MySerializer.CreateAndRead<ConnectedClientDataMsg>(packet.BitStream);
+            SeamlessClient.TryShow($"Client: {msg.ClientId} Name: {msg.Name} PacketSender: {packet.Sender.Id.Value}");
+        }
+
+        private static void OnClientLeft(ulong steamUserId, MyChatMemberStateChangeEnum leaveReason)
+        {
+            SeamlessClient.TryShow($"Client {steamUserId} left!");
+        }
+
+
+        private static void ClientChecker_Elapsed(object sender, ElapsedEventArgs e)
+        {
+
+          
+            var Clients = Sync.Clients.GetClients();
+            SeamlessClient.TryShow("---------------------");
+            foreach (var client in Clients)
+            {
+                SeamlessClient.TryShow($"{client.DisplayName}:{client.SteamUserId}");
+            }
+            SeamlessClient.TryShow("---------------------");
+        }
 
         public static void LoadWorldData(MyGameServerItem TargetServer, MyObjectBuilder_World TargetWorld)
         {
@@ -280,32 +359,39 @@ namespace SeamlessClientPlugin.SeamlessTransfer
         {
             try
             {
-                
+
+                //m_memberData
+            
 
                 MySandboxGame.Static.SessionCompatHelper.FixSessionComponentObjectBuilders(World.Checkpoint, World.Sector);
-
-
                 var LayerInstance = TransportLayerConstructor.Invoke(new object[] { 2 });
                 var SyncInstance = SyncLayerConstructor.Invoke(new object[] { LayerInstance });
                 var instance = ClientConstructor.Invoke(new object[] { Server, SyncInstance });
                 MyMulitplayerClient = instance;
 
+                MyMultiplayer.Static = Utility.CastToReflected(instance, ClientType);
+                MyMultiplayer.Static.ExperimentalMode = true;
+           
 
-                
 
-                MyMultiplayer.Static = (MyMultiplayerBase)instance;
-                MyMultiplayer.Static.ExperimentalMode = MySandboxGame.Config.ExperimentalMode;
+
                 SeamlessClient.TryShow("Successfully set MyMultiplayer.Static");
                 //var m = ClientType.GetMethod("SendPlayerData", BindingFlags.Public | BindingFlags.Instance);
                 //m.Invoke(MyMultiplayer.Static, new object[] { MyGameService.UserName });
                 Server.GetGameTagByPrefix("gamemode");
                 //typeof(MySession).GetMethod("LoadMembersFromWorld", BindingFlags.NonPublic | BindingFlags.Instance).Invoke(MySession.Static, new object[] { LoadServer.TargetWorld, MyMultiplayer.Static });
 
+                //MyMultiplayer.Static.ClientJoined += Static_ClientJoined;
 
                 //MyScreenManager.CloseScreen(GUIScreenChat);
                 MyHud.Chat.RegisterChat(MyMultiplayer.Static);
                 //MySession.SetSpectatorPositionFromServer(SeamlessClient.PreviousPosition ?? Vector3D.Zero);
                 MySession.Static.SetCameraController(MyCameraControllerEnum.SpectatorFixed);
+
+
+                Sync.Clients.SetLocalSteamId(Sync.MyId, false, MyGameService.UserName);
+                Sync.Players.RegisterEvents();
+
 
             }
             catch (Exception ex)
@@ -314,11 +400,12 @@ namespace SeamlessClientPlugin.SeamlessTransfer
             }
         }
 
+
         public static void LoadMP(MyObjectBuilder_World world, MyMultiplayerBase multiplayerSession)
         {
             SeamlessClient.TryShow("Starting LoadMP!");
 
-   
+
             //var MySessionConstructor = MySessionType.GetConstructor(BindingFlags.Instance | BindingFlags.NonPublic, null, new Type[2] { typeof(MySyncLayer), typeof(bool) }, null);
             //MySession.Static = (MySession)MySessionConstructor.Invoke(new object[] { MyMultiplayer.Static.SyncLayer, true });
             MySession.Static.Mods = World.Checkpoint.Mods;
@@ -326,11 +413,11 @@ namespace SeamlessClientPlugin.SeamlessTransfer
             MySession.Static.CurrentPath = MyLocalCache.GetSessionSavesPath(MyUtils.StripInvalidChars(world.Checkpoint.SessionName), contentFolder: false, createIfNotExists: false);
             MySession.Static.WorldBoundaries = world.Checkpoint.WorldBoundaries;
             MySession.Static.InGameTime = MyObjectBuilder_Checkpoint.DEFAULT_DATE;
-
-
-
-           // MySession.Static.Players.LoadConnectedPlayers(world.Checkpoint);
             
+
+
+            // MySession.Static.Players.LoadConnectedPlayers(world.Checkpoint);
+
             //typeof(MySession).GetMethod("PrepareBaseSession", BindingFlags.NonPublic | BindingFlags.Instance, null, new Type[] { typeof(MyObjectBuilder_Checkpoint), typeof(MyObjectBuilder_Sector) }, null).Invoke(MySession.Static, new object[] { world.Checkpoint, world.Sector });
 
             if (MyFakes.MP_SYNC_CLUSTERTREE)
@@ -400,8 +487,8 @@ namespace SeamlessClientPlugin.SeamlessTransfer
 
                     //m_adminSettings = adminSettingsEnum;
                 }
-                
-                
+
+
 
                 if (!MySession.Static.PromotedUsers.TryGetValue(clientId, out var value2))
                 {
@@ -416,7 +503,7 @@ namespace SeamlessClientPlugin.SeamlessTransfer
                     MySession.Static.CreativeTools.Add(clientId);
                 }
             }
-        
+
 
             //MySession.Static.WorkshopId = checkpoint.WorkshopId;
             MySession.Static.Password = checkpoint.Password;
@@ -449,11 +536,6 @@ namespace SeamlessClientPlugin.SeamlessTransfer
         }
 
 
-
-
-
-
-
         private static void ForceClientConnection()
         {
             SeamlessClient.IsSwitching = false;
@@ -474,7 +556,8 @@ namespace SeamlessClientPlugin.SeamlessTransfer
                     LoadMP(World, MyMultiplayer.Static);
 
 
-                }catch(Exception ex)
+                }
+                catch (Exception ex)
                 {
                     SeamlessClient.TryShow(ex.ToString());
                 }
@@ -490,10 +573,6 @@ namespace SeamlessClientPlugin.SeamlessTransfer
                     MyPlayerCollection.RequestLocalRespawn();
                 }
 
-
-
-
-
                 //typeof(MyGuiScreenTerminal).GetMethod("CreateTabs")
                 MyMultiplayer.Static.OnSessionReady();
                 MySession.Static.LoadDataComponents();
@@ -505,7 +584,7 @@ namespace SeamlessClientPlugin.SeamlessTransfer
                 SeamlessClient.TryShow("OnlinePlayers: " + MySession.Static.Players.GetOnlinePlayers().Count);
                 SeamlessClient.TryShow("Loading Complete!");
 
-
+                MyMultiplayer.Static.OnSessionReady();
                 //Recreate all controls... Will fix weird gui/paint/crap
                 MyGuiScreenHudSpace.Static.RecreateControls(true);
 
@@ -523,7 +602,7 @@ namespace SeamlessClientPlugin.SeamlessTransfer
 
         }
 
-       
+
 
         private static void LoadClients()
         {
@@ -531,25 +610,26 @@ namespace SeamlessClientPlugin.SeamlessTransfer
 
             try
             {
-                //Remove all old players
-                foreach (var Client in MySession.Static.Players.GetOnlinePlayers())
-                {
-                    if (Client.Id.SteamId == Sync.MyId)
-                        continue;
 
-                    SeamlessClient.TryShow("Disconnecting: " + Client.DisplayName);
-                    RemovePlayerFromDictionary.Invoke(MySession.Static.Players, new object[] { Client.Id });
-                }
-
-                //Clear all exsisting clients
+                //Reset Disconnected Clients
                 foreach (var Client in Sync.Clients.GetClients().ToList())
                 {
                     if (Client.SteamUserId == Sync.MyId)
-                        continue;
+                    {
+                        break;
+                    }
 
                     Sync.Clients.RemoveClient(Client.SteamUserId);
                 }
 
+
+
+                //Remove all old players
+                //Sync.Clients.Clear();
+
+                //Add server client
+                Sync.Clients.AddClient(Sync.ServerId, "Good.bot");
+                //Sync.Clients.AddClient(Sync.MyId, Sync.MyName);
 
                 object VirtualClientsValue = VirtualClients.GetValue(MySession.Static);
 
@@ -560,7 +640,7 @@ namespace SeamlessClientPlugin.SeamlessTransfer
 
                 //Load Members from world
                 SeamlessClient.TryShow("Loading Members From World!");
-                LoadMembersFromWorld.Invoke(MySession.Static, new object[] { World, MyMulitplayerClient });
+                //LoadMembersFromWorld.Invoke(MySession.Static, new object[] { World, MyMulitplayerClient });
                 foreach (var Client in World.Checkpoint.Clients)
                 {
                     SeamlessClient.TryShow("Adding New Client: " + Client.Name);
@@ -589,7 +669,7 @@ namespace SeamlessClientPlugin.SeamlessTransfer
                 savingPlayerId = new MyPlayer.PlayerId(Sync.MyId);
             }
 
-            SeamlessClient.TryShow("Saving PlayerID: "+savingPlayerId.ToString());
+            SeamlessClient.TryShow("Saving PlayerID: " + savingPlayerId.ToString());
 
 
             SeamlessClient.TryShow("Checkpoint.AllPlayers: " + checkpoint.AllPlayers.Count);
@@ -602,10 +682,11 @@ namespace SeamlessClientPlugin.SeamlessTransfer
             foreach (KeyValuePair<MyObjectBuilder_Checkpoint.PlayerId, MyObjectBuilder_Player> item3 in checkpoint.AllPlayersData.Dictionary)
             {
                 MyPlayer.PlayerId playerId5 = new MyPlayer.PlayerId(item3.Key.GetClientId(), item3.Key.SerialId);
+
+                SeamlessClient.TryShow($"ConnectedPlayer: {playerId5.ToString()}");
                 if (savingPlayerId.HasValue && playerId5.SteamId == savingPlayerId.Value.SteamId)
                 {
                     playerId5 = new MyPlayer.PlayerId(Sync.MyId, playerId5.SerialId);
-
                 }
 
                 LoadPlayerInternal.Invoke(MySession.Static.Players, new object[] { playerId5, item3.Value, false });
@@ -631,6 +712,7 @@ namespace SeamlessClientPlugin.SeamlessTransfer
         {
 
         }
+
 
     }
 

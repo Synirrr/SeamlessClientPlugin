@@ -129,6 +129,9 @@ namespace SeamlessClientPlugin.SeamlessTransfer
         {
             if (MyMultiplayer.Static != null)
             {
+                Sync.Clients.Clear();
+                Sync.Players.ClearPlayers();
+
                 MyHud.Chat.UnregisterChat(MyMultiplayer.Static);
                 //OnPlayerCreated
                 //OnConnectedClient

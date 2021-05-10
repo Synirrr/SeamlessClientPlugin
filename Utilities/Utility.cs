@@ -1,4 +1,5 @@
-﻿using ProtoBuf;
+﻿using HarmonyLib;
+using ProtoBuf;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -34,5 +35,12 @@ namespace SeamlessClientPlugin.Utilities
                 return Serializer.Deserialize<T>(m);
             }
         }
+
+
+        public static dynamic CastToReflected(this object o, Type type)
+        {
+            return Convert.ChangeType(o, type);
+        }
+
     }
 }
