@@ -44,8 +44,8 @@ namespace SeamlessClientPlugin.SeamlessTransfer
 
 
 
-        /* Static FieldInfos */
-        public static FieldInfo MySessionLayer { get; private set; }
+        /* Static FieldInfos and PropertyInfos */
+        public static PropertyInfo MySessionLayer { get; private set; }
         public static FieldInfo VirtualClients { get; private set; }
         public static FieldInfo AdminSettings { get; private set; }
         public static FieldInfo RemoteAdminSettings { get; private set; }
@@ -80,8 +80,8 @@ namespace SeamlessClientPlugin.SeamlessTransfer
             MyMultiplayerClientBaseConstructor = GetConstructor(MyMultiplayerClientBase, BindingFlags.Instance | BindingFlags.NonPublic, new Type[] { typeof(MySyncLayer) });
 
 
-            /* Get Fields */
-            MySessionLayer = GetField(typeof(MySession), "SyncLayer", BindingFlags.Instance | BindingFlags.Public);
+            /* Get Fields and Properties */
+            MySessionLayer = GetProperty(typeof(MySession), "SyncLayer", BindingFlags.Instance | BindingFlags.Public);
             VirtualClients = GetField(typeof(MySession), "VirtualClients", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
             AdminSettings = GetField(typeof(MySession), "m_adminSettings", BindingFlags.Instance | BindingFlags.NonPublic);
             RemoteAdminSettings = GetField(typeof(MySession), "m_remoteAdminSettings", BindingFlags.Instance | BindingFlags.NonPublic);
@@ -257,6 +257,26 @@ namespace SeamlessClientPlugin.SeamlessTransfer
 
 
                 return FoundField;
+
+            }
+            catch (Exception Ex)
+            {
+                throw Ex;
+            }
+
+        }
+
+        private static PropertyInfo GetProperty(Type type, string PropertyName, BindingFlags Flags)
+        {
+            try
+            {
+                PropertyInfo FoundProperty = type.GetProperty(PropertyName, Flags);
+
+                if (FoundProperty == null)
+                    throw new NullReferenceException($"Property for {PropertyName} is null!");
+
+
+                return FoundProperty;
 
             }
             catch (Exception Ex)
