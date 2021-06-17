@@ -7,6 +7,7 @@ using Sandbox.Game.Gui;
 using Sandbox.Game.GUI;
 using Sandbox.Game.Multiplayer;
 using Sandbox.Game.World;
+using Sandbox.Game.World.Generator;
 using Sandbox.ModAPI;
 using SeamlessClientPlugin.Utilities;
 using System;
@@ -111,6 +112,9 @@ namespace SeamlessClientPlugin.SeamlessTransfer
             LoadOnlinePlayers();
             SetWorldSettings();
             RemoveOldEntities();
+            UpdateWorldGenerator();
+
+
             StartEntitySync();
 
             MyModAPIHelper.Initialize();
@@ -321,6 +325,21 @@ namespace SeamlessClientPlugin.SeamlessTransfer
 
 
 
+        private void UpdateWorldGenerator()
+        {
+            //This will re-init the MyProceduralWorldGenerator. (Not doing this will result in asteroids not rendering in properly)
+
+            //This shoud never be null
+            var Generator = MySession.Static.GetComponent<MyProceduralWorldGenerator>();
+
+            //Force component to unload
+            Patches.UnloadProceduralWorldGenerator.Invoke(Generator, null);
+
+            //Force component to reload, re-syncing settings and seeds to the destination server
+            Generator.LoadData();
+
+            
+        }
 
         private void UnloadCurrentServer()
         {

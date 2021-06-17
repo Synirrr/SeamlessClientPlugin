@@ -162,6 +162,7 @@
     <Compile Include="Messages\WorldRequest.cs" />
     <Compile Include="SeamlessClient.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="SeamlessTransfer\ModLoader.cs" />
     <Compile Include="SeamlessTransfer\PingServer.cs" />
     <Compile Include="Messages\Transfer.cs" />
     <Compile Include="Utilities\Patches.cs" />
