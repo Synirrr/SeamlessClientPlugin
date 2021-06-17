@@ -194,7 +194,6 @@ namespace SeamlessClientPlugin.SeamlessTransfer
             MySession.Static.InGameTime = MyObjectBuilder_Checkpoint.DEFAULT_DATE;
             MySession.Static.ElapsedGameTime = new TimeSpan(TargetWorld.Checkpoint.ElapsedGameTime);
             MySession.Static.Settings.EnableSpectator = false;
-            
 
             MySession.Static.Password = TargetWorld.Checkpoint.Password;
             MySession.Static.PreviousEnvironmentHostility = TargetWorld.Checkpoint.PreviousEnvironmentHostility;
@@ -333,7 +332,7 @@ namespace SeamlessClientPlugin.SeamlessTransfer
             //Clear all old players and clients.
             Sync.Clients.Clear();
             Sync.Players.ClearPlayers();
-          
+
 
             MyHud.Chat.UnregisterChat(MyMultiplayer.Static);
             MySession.Static.Gpss.RemovePlayerGpss(MySession.Static.LocalPlayerId);

@@ -166,6 +166,7 @@
     <Compile Include="Messages\Transfer.cs" />
     <Compile Include="Utilities\Patches.cs" />
     <Compile Include="SeamlessTransfer\SwitchServers.cs" />
+    <Compile Include="Utilities\UpdateChecker.cs" />
     <Compile Include="Utilities\Utility.cs" />
   </ItemGroup>
   <ItemGroup>
