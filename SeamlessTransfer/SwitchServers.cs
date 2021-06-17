@@ -15,9 +15,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using VRage;
 using VRage.Game;
 using VRage.Game.ModAPI;
 using VRage.GameServices;
+using VRage.Steam;
 using VRage.Utils;
 using VRageMath;
 using VRageRender;
@@ -69,12 +71,21 @@ namespace SeamlessClientPlugin.SeamlessTransfer
             MyMultiplayer.Static = Utility.CastToReflected(instance, Patches.ClientType);
             MyMultiplayer.Static.ExperimentalMode = true;
 
+            // Set the new SyncLayer to the MySession.Static.SyncLayer
+            Patches.MySessionLayer.SetValue(MySession.Static, MyMultiplayer.Static.SyncLayer);
+
             SeamlessClient.TryShow("Successfully set MyMultiplayer.Static");
 
-            MyHud.Chat.RegisterChat(MyMultiplayer.Static);
+           
             Sync.Clients.SetLocalSteamId(Sync.MyId, false, MyGameService.UserName);
             Sync.Players.RegisterEvents();
+
+
+
+
+
         }
+
 
 
 
@@ -90,8 +101,11 @@ namespace SeamlessClientPlugin.SeamlessTransfer
 
         private void ForceClientConnection()
         {
-            // Set the new SyncLayer to the MySession.Static.SyncLayer
-            Patches.MySessionLayer.SetValue(MySession.Static, MyMultiplayer.Static.SyncLayer);
+        
+
+            MyHud.Chat.RegisterChat(MyMultiplayer.Static);
+
+            MyMultiplayer.Static.OnSessionReady();
 
             LoadConnectedClients();
             LoadOnlinePlayers();
@@ -289,7 +303,7 @@ namespace SeamlessClientPlugin.SeamlessTransfer
             }
 
             //typeof(MyGuiScreenTerminal).GetMethod("CreateTabs")
-            MyMultiplayer.Static.OnSessionReady();
+           
             MySession.Static.LoadDataComponents();
             //MyGuiSandbox.LoadData(false);
             //MyGuiSandbox.AddScreen(MyGuiSandbox.CreateScreen(MyPerGameSettings.GUI.HUDScreen));
@@ -299,7 +313,7 @@ namespace SeamlessClientPlugin.SeamlessTransfer
             SeamlessClient.TryShow("OnlinePlayers: " + MySession.Static.Players.GetOnlinePlayers().Count);
             SeamlessClient.TryShow("Loading Complete!");
 
-            MyMultiplayer.Static.OnSessionReady();
+         
             //Recreate all controls... Will fix weird gui/paint/crap
             MyGuiScreenHudSpace.Static.RecreateControls(true);
         }
