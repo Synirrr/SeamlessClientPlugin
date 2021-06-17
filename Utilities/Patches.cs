@@ -3,6 +3,7 @@ using Sandbox.Engine.Multiplayer;
 using Sandbox.Engine.Networking;
 using Sandbox.Game.Multiplayer;
 using Sandbox.Game.World;
+using Sandbox.Game.World.Generator;
 using Sandbox.Graphics.GUI;
 using System;
 using System.Collections.Generic;
@@ -66,6 +67,9 @@ namespace SeamlessClientPlugin.SeamlessTransfer
 
 
 
+        /* WorldGenerator */
+        public static MethodInfo UnloadProceduralWorldGenerator;
+
 
 
         public static void GetPatches()
@@ -101,6 +105,8 @@ namespace SeamlessClientPlugin.SeamlessTransfer
             LoadMembersFromWorld = GetMethod(typeof(MySession), "LoadMembersFromWorld", BindingFlags.NonPublic | BindingFlags.Instance);
             LoadMultiplayer = GetMethod(typeof(MySession), "LoadMultiplayer", BindingFlags.Static | BindingFlags.NonPublic);
             SendPlayerData = GetMethod(ClientType, "SendPlayerData", BindingFlags.Instance | BindingFlags.NonPublic);
+            UnloadProceduralWorldGenerator = GetMethod(typeof(MyProceduralWorldGenerator), "UnloadData", BindingFlags.Instance | BindingFlags.NonPublic);
+
 
             MethodInfo ConnectToServer = GetMethod(typeof(MyGameService), "ConnectToServer", BindingFlags.Static | BindingFlags.Public);
 
