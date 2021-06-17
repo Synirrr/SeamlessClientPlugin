@@ -122,12 +122,6 @@ namespace SeamlessClientPlugin
 
         public void Init(object gameInstance)
         {
-            Utilities.UpdateChecker Checker = new Utilities.UpdateChecker(false);
-            Task UpdateChecker = new Task(() => Checker.PingUpdateServer());
-            UpdateChecker.Start();
-
-
-
             Patches.GetPatches();
             TryShow("Running Seamless Client Plugin v[" + Version + "]");
             PingTimer.Elapsed += PingTimer_Elapsed;
