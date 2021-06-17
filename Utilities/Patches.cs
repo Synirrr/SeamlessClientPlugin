@@ -30,6 +30,7 @@ namespace SeamlessClientPlugin.SeamlessTransfer
         public static readonly Type VirtualClientsType = Type.GetType("Sandbox.Engine.Multiplayer.MyVirtualClients, Sandbox.Game");
         public static readonly Type GUIScreenChat = Type.GetType("Sandbox.Game.Gui.MyGuiScreenChat, Sandbox.Game");
         public static readonly Type MyMultiplayerClientBase = Type.GetType("Sandbox.Engine.Multiplayer.MyMultiplayerClientBase, Sandbox.Game");
+        public static readonly Type MySteamServerDiscovery = Type.GetType("VRage.Steam.MySteamServerDiscovery, Vrage.Steam");
 
         /* Harmony Patcher */
         private static Harmony Patcher = new Harmony("SeamlessClientPatcher");
@@ -57,6 +58,8 @@ namespace SeamlessClientPlugin.SeamlessTransfer
         public static MethodInfo LoadPlayerInternal { get; private set; }
         public static MethodInfo LoadMembersFromWorld { get; private set; }
         public static MethodInfo LoadMultiplayer { get; private set; }
+
+        public static MethodInfo SendPlayerData;
 
 
         public static event EventHandler<JoinResultMsg> OnJoinEvent;
@@ -97,9 +100,9 @@ namespace SeamlessClientPlugin.SeamlessTransfer
             LoadPlayerInternal = GetMethod(typeof(MyPlayerCollection), "LoadPlayerInternal", BindingFlags.Instance | BindingFlags.NonPublic);
             LoadMembersFromWorld = GetMethod(typeof(MySession), "LoadMembersFromWorld", BindingFlags.NonPublic | BindingFlags.Instance);
             LoadMultiplayer = GetMethod(typeof(MySession), "LoadMultiplayer", BindingFlags.Static | BindingFlags.NonPublic);
+            SendPlayerData = GetMethod(ClientType, "SendPlayerData", BindingFlags.Instance | BindingFlags.NonPublic);
 
-
-
+            MethodInfo ConnectToServer = GetMethod(typeof(MyGameService), "ConnectToServer", BindingFlags.Static | BindingFlags.Public);
 
 
 
@@ -108,6 +111,7 @@ namespace SeamlessClientPlugin.SeamlessTransfer
 
             Patcher.Patch(OnJoin, postfix: new HarmonyMethod(GetPatchMethod(nameof(OnUserJoined))));
             Patcher.Patch(LoadingAction, prefix: new HarmonyMethod(GetPatchMethod(nameof(LoadMultiplayerSession))));
+            //Patcher.Patch(ConnectToServer, prefix: new HarmonyMethod(GetPatchMethod(nameof(OnConnectToServer))));
         }
 
         private static MethodInfo GetPatchMethod(string v)
@@ -220,6 +224,15 @@ namespace SeamlessClientPlugin.SeamlessTransfer
                 //Invoke the switch event
                 OnJoinEvent?.Invoke(null, msg);
             }
+        }
+
+        private static bool OnConnectToServer(MyGameServerItem server, Action<JoinResult> onDone)
+        {
+            if (SeamlessClient.IsSwitching)
+                return false;
+
+
+            return true;
         }
 
 

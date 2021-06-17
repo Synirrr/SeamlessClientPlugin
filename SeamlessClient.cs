@@ -180,7 +180,6 @@ namespace SeamlessClientPlugin
 
         public static void RunInitilizations()
         {
-            TryShow("Initilizing Communications!");
             MyAPIGateway.Multiplayer.RegisterSecureMessageHandler(SeamlessClientNetID, MessageHandler);
             Initilized = true;
         }
@@ -202,6 +201,8 @@ namespace SeamlessClientPlugin
                 if (Recieved.MessageType == ClientMessageType.TransferServer)
                 {
                     Transfer TransferMessage = Recieved.GetTransferData();
+
+
 
                     ServerPing.StartServerPing(TransferMessage);
                 }

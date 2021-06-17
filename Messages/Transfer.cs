@@ -46,7 +46,8 @@ namespace SeamlessClientPlugin.SeamlessTransfer
         [ProtoMember(9)]
         public MyObjectBuilder_Toolbar PlayerToolbar;
 
-        public List<Vector3> PlayerBuildSlots;
+        [ProtoMember(10)]
+        public string ServerName;
 
         public Transfer(ulong ServerID, string IPAdress)
         {
