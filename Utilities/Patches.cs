@@ -185,6 +185,8 @@ namespace SeamlessClientPlugin.SeamlessTransfer
         {
             File = null;
             string WorkshopDir = MyFileSystem.ModsPath;
+            List<string> backgrounds = new List<string>();
+            Random r = new Random();
             SeamlessClient.TryShow(WorkshopDir);
             try
             {
@@ -196,18 +198,21 @@ namespace SeamlessClientPlugin.SeamlessTransfer
                     if (!Directory.Exists(SearchDir))
                         continue;
 
-                    var files = Directory.GetFiles(SearchDir, "*.dds", SearchOption.TopDirectoryOnly);
+                    var files = Directory.GetFiles(SearchDir, "CustomLoadingBackground-*.dds", SearchOption.TopDirectoryOnly);
                     foreach (var file in files)
                     {
-                        if (Path.GetFileNameWithoutExtension(file) == "CustomLoadingBackground")
+                        // Adds all files containing CustomLoadingBackground to a list for later randomisation
+                        if (Path.GetFileNameWithoutExtension(file).Contains("CustomLoadingBackground"))
                         {
-                            SeamlessClient.TryShow(Mod.FriendlyName + " contains a custom loading background!");
-                            File = file;
-                            return true;
+                            backgrounds.Add(file);
                         }
                     }
                 }
-
+                // Randomly pick a loading screen from the available backgrounds
+                var numberOfItems = backgrounds.Count();
+                var rInt = r.Next(0, numberOfItems - 1);
+                File = backgrounds[rInt];
+                return true;
             }
             catch (Exception ex)
             {
