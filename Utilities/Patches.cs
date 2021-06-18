@@ -204,6 +204,7 @@ namespace SeamlessClientPlugin.SeamlessTransfer
                         // Adds all files containing CustomLoadingBackground to a list for later randomisation
                         if (Path.GetFileNameWithoutExtension(file).Contains("CustomLoadingBackground"))
                         {
+                            SeamlessClient.TryShow(Mod.FriendlyName + " contains a custom loading background!");
                             backgrounds.Add(file);
                         }
                     }
