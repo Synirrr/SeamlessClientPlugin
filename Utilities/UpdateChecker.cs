@@ -2,6 +2,7 @@
 using Sandbox.Graphics.GUI;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
@@ -21,7 +22,7 @@ namespace SeamlessClientPlugin.Utilities
         public string PluginFolder;
         public string CurrentVersion;
         public bool DownloadUpdate;
-        private string GitHubAPILink = "https://api.github.com/repos/Casimir255/SeamlessClientPlugin/releases/latest";
+        private const string GitHubAPILink = "https://api.github.com/repos/Casimir255/SeamlessClientPlugin/releases/latest";
 
         private WebClient Client;
 
@@ -33,6 +34,31 @@ namespace SeamlessClientPlugin.Utilities
             PluginFolder = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
             Client = new WebClient();
             DeleteOLDFiles();
+        }
+
+        private static void RestartClientAfterUpdate()
+        {
+            try
+            {
+                SeamlessClient.TryShow("Restarting Client!");
+                string exe = Assembly.GetEntryAssembly().Location;
+                Process currentProcess = Process.GetCurrentProcess();
+
+                string[] CommandArgs = Environment.GetCommandLineArgs();
+                string NewCommandLine = "";
+                for (int i = 1; i < CommandArgs.Length; i++)
+                {
+                    NewCommandLine += " " + CommandArgs[i];
+                }
+
+                SeamlessClient.TryShow(NewCommandLine);
+                Process.Start(exe, NewCommandLine);
+                currentProcess.Kill();
+            }
+            catch
+            {
+                SeamlessClient.TryShow("Restarting Client error!");
+            }
         }
 
 
@@ -201,7 +227,7 @@ namespace SeamlessClientPlugin.Utilities
 
                 //Restart client
                 SeamlessClient.TryShow("UpdateComplete!");
-                SeamlessClient.RestartClientAfterUpdate();
+                RestartClientAfterUpdate();
                 return true;
 
             }

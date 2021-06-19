@@ -144,8 +144,6 @@ namespace SeamlessClientPlugin
             {
                 TryShow("Initilizing Communications!");
                 RunInitilizations();
-
-
             }
             //OnNewPlayerRequest
             //throw new NotImplementedException();
@@ -170,13 +168,7 @@ namespace SeamlessClientPlugin
         }
 
 
-    
-
-
-
-      
-
-
+   
 
         public static void RunInitilizations()
         {
@@ -213,31 +205,6 @@ namespace SeamlessClientPlugin
             }
         }
 
-
-        public static void RestartClientAfterUpdate()
-        {
-            try
-            {
-                TryShow("Restarting Client!");
-                string exe = Assembly.GetEntryAssembly().Location;
-                Process currentProcess = Process.GetCurrentProcess();
-
-                string[] CommandArgs = Environment.GetCommandLineArgs();
-                string NewCommandLine = "";
-                for (int i = 1; i < CommandArgs.Length; i++)
-                {
-                    NewCommandLine += " " + CommandArgs[i];
-                }
-
-                TryShow(NewCommandLine);
-                Process.Start(exe, NewCommandLine);
-                currentProcess.Kill();
-            }
-            catch (Exception ex)
-            {
-                TryShow("Restarting Client error!");
-            }
-        }
 
         public static void TryShow(string message)
         {

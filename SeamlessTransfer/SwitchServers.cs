@@ -305,8 +305,11 @@ namespace SeamlessClientPlugin.SeamlessTransfer
                 MyPlayerCollection.RequestLocalRespawn();
             }
 
+            //Request client state batch
+            (MyMultiplayer.Static as MyMultiplayerClientBase).RequestBatchConfirmation();
+            MyMultiplayer.Static.PendingReplicablesDone += MyMultiplayer_PendingReplicablesDone;
             //typeof(MyGuiScreenTerminal).GetMethod("CreateTabs")
-           
+
             MySession.Static.LoadDataComponents();
             //MyGuiSandbox.LoadData(false);
             //MyGuiSandbox.AddScreen(MyGuiSandbox.CreateScreen(MyPerGameSettings.GUI.HUDScreen));
@@ -321,9 +324,14 @@ namespace SeamlessClientPlugin.SeamlessTransfer
             MyGuiScreenHudSpace.Static.RecreateControls(true);
         }
 
-
-
-
+        private void MyMultiplayer_PendingReplicablesDone()
+        {
+            if (MySession.Static.VoxelMaps.Instances.Count > 0)
+            {
+                MySandboxGame.AreClipmapsReady = false;
+            }
+            MyMultiplayer.Static.PendingReplicablesDone -= MyMultiplayer_PendingReplicablesDone;
+        }
 
         private void UpdateWorldGenerator()
         {
