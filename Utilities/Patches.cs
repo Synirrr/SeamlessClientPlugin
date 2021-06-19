@@ -80,8 +80,8 @@ namespace SeamlessClientPlugin.SeamlessTransfer
         public static void GetPatches()
         {
             //Get reflected values and store them
-            
-   
+
+
 
 
             /* Get Constructors */
@@ -104,7 +104,7 @@ namespace SeamlessClientPlugin.SeamlessTransfer
 
             /* Get Methods */
             MethodInfo OnJoin = GetMethod(ClientType, "OnUserJoined", BindingFlags.NonPublic | BindingFlags.Instance);
-            MethodInfo LoadingAction = GetMethod(typeof(MySessionLoader),"LoadMultiplayerSession", BindingFlags.Public | BindingFlags.Static);
+            MethodInfo LoadingAction = GetMethod(typeof(MySessionLoader), "LoadMultiplayerSession", BindingFlags.Public | BindingFlags.Static);
             InitVirtualClients = GetMethod(VirtualClientsType, "Init", BindingFlags.Instance | BindingFlags.Public);
             LoadPlayerInternal = GetMethod(typeof(MyPlayerCollection), "LoadPlayerInternal", BindingFlags.Instance | BindingFlags.NonPublic);
             LoadMembersFromWorld = GetMethod(typeof(MySession), "LoadMembersFromWorld", BindingFlags.NonPublic | BindingFlags.Instance);
@@ -141,7 +141,7 @@ namespace SeamlessClientPlugin.SeamlessTransfer
 
         private static bool LoadMultiplayerSession(MyObjectBuilder_World world, MyMultiplayerBase multiplayerSession)
         {
-            
+
 
             MyLog.Default.WriteLine("LoadSession() - Start");
             if (!MyWorkshop.CheckLocalModsAllowed(world.Checkpoint.Mods, allowLocalMods: false))
@@ -164,7 +164,7 @@ namespace SeamlessClientPlugin.SeamlessTransfer
 
                     ServerName = multiplayerSession.HostName;
                     GetCustomLoadingScreenPath(world.Checkpoint.Mods, out LoadingScreenTexture);
-                 
+
 
                     MySessionLoader.StartLoading(delegate
                     {
@@ -222,7 +222,7 @@ namespace SeamlessClientPlugin.SeamlessTransfer
 
             string LoadScreen = $"Loading into {ServerName}! Please wait!";
 
-            
+
             MyGuiManager.DrawString(m_font, LoadScreen, new Vector2(0.5f, 0.95f), MyGuiSandbox.GetDefaultTextScaleWithLanguage() * 1.1f, new Color(MyGuiConstants.LOADING_PLEASE_WAIT_COLOR * m_transitionAlpha), MyGuiDrawAlignEnum.HORISONTAL_CENTER_AND_VERTICAL_BOTTOM);
 
             MyGuiManager.DrawString(m_font, "Nexus & SeamlessClient Made by: Casimir", new Vector2(0.95f, 0.95f), MyGuiSandbox.GetDefaultTextScaleWithLanguage() * 1.1f, new Color(MyGuiConstants.LOADING_PLEASE_WAIT_COLOR * m_transitionAlpha), MyGuiDrawAlignEnum.HORISONTAL_CENTER_AND_VERTICAL_BOTTOM);
@@ -244,8 +244,8 @@ namespace SeamlessClientPlugin.SeamlessTransfer
             return false;
         }
 
-      
-       
+
+
         private static bool GetCustomLoadingScreenPath(List<MyObjectBuilder_Checkpoint.ModItem> Mods, out string File)
         {
             File = null;
@@ -263,20 +263,19 @@ namespace SeamlessClientPlugin.SeamlessTransfer
                     if (!Directory.Exists(SearchDir))
                         continue;
 
+
                     var files = Directory.GetFiles(SearchDir, "CustomLoadingBackground*.dds", SearchOption.TopDirectoryOnly);
                     foreach (var file in files)
                     {
                         // Adds all files containing CustomLoadingBackground to a list for later randomisation
-                        if (Path.GetFileNameWithoutExtension(file).Contains("CustomLoadingBackground"))
-                        {
-                            SeamlessClient.TryShow(Mod.FriendlyName + " contains a custom loading background!");
-                            backgrounds.Add(file);
-                        }
+                        SeamlessClient.TryShow(Mod.FriendlyName + " contains a custom loading background!");
+                        backgrounds.Add(file);
+
                     }
                 }
+
                 // Randomly pick a loading screen from the available backgrounds
-                var numberOfItems = backgrounds.Count();
-                var rInt = r.Next(0, numberOfItems - 1);
+                var rInt = r.Next(0, backgrounds.Count() - 1);
                 File = backgrounds[rInt];
                 return true;
             }
@@ -329,7 +328,7 @@ namespace SeamlessClientPlugin.SeamlessTransfer
                 return FoundMethod;
 
             }
-            catch(Exception Ex)
+            catch (Exception Ex)
             {
                 throw Ex;
             }
