@@ -245,13 +245,13 @@ namespace SeamlessClientPlugin.SeamlessTransfer
         }
 
       
-
+       
         private static bool GetCustomLoadingScreenPath(List<MyObjectBuilder_Checkpoint.ModItem> Mods, out string File)
         {
             File = null;
             string WorkshopDir = MyFileSystem.ModsPath;
             List<string> backgrounds = new List<string>();
-            Random r = new Random();
+            Random r = new Random(DateTime.Now.Millisecond);
             SeamlessClient.TryShow(WorkshopDir);
             try
             {
