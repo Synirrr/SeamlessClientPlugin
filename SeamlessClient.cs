@@ -106,7 +106,7 @@ namespace SeamlessClientPlugin
 
 
 
-        public static string Version = "1.2.20";
+        public static string Version = "1.3.00";
         public static bool Debug = false;
         private static bool Initilized = false;
 
@@ -163,7 +163,7 @@ namespace SeamlessClientPlugin
             }
             catch (Exception ex)
             {
-                TryShow(ex.ToString());
+                //TryShow(ex.ToString());
             }
         }
 
