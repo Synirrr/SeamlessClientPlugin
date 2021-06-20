@@ -106,7 +106,7 @@ namespace SeamlessClientPlugin
 
 
 
-        public static string Version = "1.3.00";
+        public static string Version = "1.3.01";
         public static bool Debug = false;
         private static bool Initilized = false;
 
