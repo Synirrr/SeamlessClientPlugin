@@ -14,10 +14,12 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using VRage;
 using VRage.Game;
+using VRage.Game.Components;
 using VRage.Game.ModAPI;
 using VRage.GameServices;
 using VRage.Steam;
@@ -305,8 +307,11 @@ namespace SeamlessClientPlugin.SeamlessTransfer
                 MyPlayerCollection.RequestLocalRespawn();
             }
 
+            //Request client state batch
+            (MyMultiplayer.Static as MyMultiplayerClientBase).RequestBatchConfirmation();
+            MyMultiplayer.Static.PendingReplicablesDone += MyMultiplayer_PendingReplicablesDone;
             //typeof(MyGuiScreenTerminal).GetMethod("CreateTabs")
-           
+
             MySession.Static.LoadDataComponents();
             //MyGuiSandbox.LoadData(false);
             //MyGuiSandbox.AddScreen(MyGuiSandbox.CreateScreen(MyPerGameSettings.GUI.HUDScreen));
@@ -321,24 +326,50 @@ namespace SeamlessClientPlugin.SeamlessTransfer
             MyGuiScreenHudSpace.Static.RecreateControls(true);
         }
 
-
-
-
+        private void MyMultiplayer_PendingReplicablesDone()
+        {
+            if (MySession.Static.VoxelMaps.Instances.Count > 0)
+            {
+                MySandboxGame.AreClipmapsReady = false;
+            }
+            MyMultiplayer.Static.PendingReplicablesDone -= MyMultiplayer_PendingReplicablesDone;
+        }
 
         private void UpdateWorldGenerator()
         {
             //This will re-init the MyProceduralWorldGenerator. (Not doing this will result in asteroids not rendering in properly)
 
-            //This shoud never be null
-            var Generator = MySession.Static.GetComponent<MyProceduralWorldGenerator>();
+
+           //This shoud never be null
+           var Generator = MySession.Static.GetComponent<MyProceduralWorldGenerator>();
 
             //Force component to unload
             Patches.UnloadProceduralWorldGenerator.Invoke(Generator, null);
 
+            //Re-call the generator init
+            MyObjectBuilder_WorldGenerator GeneratorSettings = (MyObjectBuilder_WorldGenerator)TargetWorld.Checkpoint.SessionComponents.FirstOrDefault(x => x.GetType() == typeof(MyObjectBuilder_WorldGenerator));
+            if (GeneratorSettings != null)
+            {
+                //Re-initilized this component (forces to update asteroid areas like not in planets etc)
+                Generator.Init(GeneratorSettings);
+            }
+
+
+
             //Force component to reload, re-syncing settings and seeds to the destination server
             Generator.LoadData();
 
-            
+
+            //We need to go in and force planets to be empty areas in the generator. This is originially done on planet init.
+            FieldInfo PlanetInitArgs = typeof(MyPlanet).GetField("m_planetInitValues", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            foreach (var Planet in MyEntities.GetEntities().OfType<MyPlanet>())
+            {
+                MyPlanetInitArguments args = (MyPlanetInitArguments)PlanetInitArgs.GetValue(Planet);
+
+                float MaxRadius = args.MaxRadius;
+
+                Generator.MarkEmptyArea(Planet.PositionComp.GetPosition(), MaxRadius);
+            }
         }
 
         private void UnloadCurrentServer()
