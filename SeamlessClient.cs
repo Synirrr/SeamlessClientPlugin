@@ -122,12 +122,6 @@ namespace SeamlessClientPlugin
 
         public void Init(object gameInstance)
         {
-            Utilities.UpdateChecker Checker = new Utilities.UpdateChecker(false);
-            Task UpdateChecker = new Task(() => Checker.PingUpdateServer());
-            UpdateChecker.Start();
-
-
-
             Patches.GetPatches();
             TryShow("Running Seamless Client Plugin v[" + Version + "]");
             PingTimer.Elapsed += PingTimer_Elapsed;
@@ -145,6 +139,9 @@ namespace SeamlessClientPlugin
                 TryShow("Initilizing Communications!");
                 RunInitilizations();
             }
+
+
+            
             //OnNewPlayerRequest
             //throw new NotImplementedException();
         }
@@ -158,6 +155,8 @@ namespace SeamlessClientPlugin
             // Terrible way to make sure server knows we are running seamless client 
             try
             {
+                
+
                 ClientMessage PingServer = new ClientMessage(ClientMessageType.FirstJoin);
                 MyAPIGateway.Multiplayer?.SendMessageToServer(SeamlessClientNetID, Utilities.Utility.Serialize(PingServer));
             }
