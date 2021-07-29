@@ -6,6 +6,7 @@ using Sandbox.Game.Entities;
 using Sandbox.Game.Gui;
 using Sandbox.Game.GUI;
 using Sandbox.Game.Multiplayer;
+using Sandbox.Game.SessionComponents;
 using Sandbox.Game.World;
 using Sandbox.Game.World.Generator;
 using Sandbox.ModAPI;
@@ -34,6 +35,8 @@ namespace SeamlessClientPlugin.SeamlessTransfer
         public MyGameServerItem TargetServer { get; }
         public MyObjectBuilder_World TargetWorld { get; }
 
+        private string OldArmorSkin { get; set; } = string.Empty;
+
 
         public SwitchServers(MyGameServerItem TargetServer, MyObjectBuilder_World TargetWorld)
         {
@@ -44,6 +47,8 @@ namespace SeamlessClientPlugin.SeamlessTransfer
 
         public void BeginSwitch()
         {
+            OldArmorSkin = MySession.Static.LocalHumanPlayer.BuildArmorSkin;
+
             MySandboxGame.Static.Invoke(delegate
             {
                 //Set camera controller to fixed spectator
@@ -73,6 +78,8 @@ namespace SeamlessClientPlugin.SeamlessTransfer
 
             MyMultiplayer.Static = Utility.CastToReflected(instance, Patches.ClientType);
             MyMultiplayer.Static.ExperimentalMode = true;
+
+            
 
             // Set the new SyncLayer to the MySession.Static.SyncLayer
             Patches.MySessionLayer.SetValue(MySession.Static, MyMultiplayer.Static.SyncLayer);
@@ -122,6 +129,10 @@ namespace SeamlessClientPlugin.SeamlessTransfer
             MyModAPIHelper.Initialize();
             // Allow the game to start proccessing incoming messages in the buffer
             MyMultiplayer.Static.StartProcessingClientMessages();
+
+            //Recreate all controls... Will fix weird gui/paint/crap
+            MyGuiScreenHudSpace.Static.RecreateControls(true);
+            //MySession.Static.LocalHumanPlayer.BuildArmorSkin = OldArmorSkin;
         }
 
 
@@ -277,7 +288,7 @@ namespace SeamlessClientPlugin.SeamlessTransfer
 
         private void LoadConnectedClients()
         {
-
+          
 
             Patches.LoadMembersFromWorld.Invoke(MySession.Static, new object[] { TargetWorld, MyMultiplayer.Static });
 
@@ -320,10 +331,6 @@ namespace SeamlessClientPlugin.SeamlessTransfer
 
             SeamlessClient.TryShow("OnlinePlayers: " + MySession.Static.Players.GetOnlinePlayers().Count);
             SeamlessClient.TryShow("Loading Complete!");
-
-         
-            //Recreate all controls... Will fix weird gui/paint/crap
-            MyGuiScreenHudSpace.Static.RecreateControls(true);
         }
 
         private void MyMultiplayer_PendingReplicablesDone()
@@ -378,6 +385,9 @@ namespace SeamlessClientPlugin.SeamlessTransfer
             if (MyMultiplayer.Static == null)
                 throw new Exception("MyMultiplayer.Static is null on unloading? dafuq?");
 
+            //Try and close the quest log
+            MySessionComponentIngameHelp component = MySession.Static.GetComponent<MySessionComponentIngameHelp>();
+            component?.TryCancelObjective();
 
             //Clear all old players and clients.
             Sync.Clients.Clear();

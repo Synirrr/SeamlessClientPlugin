@@ -106,7 +106,7 @@ namespace SeamlessClientPlugin
 
 
 
-        public static string Version = "1.3.01";
+        public static string Version = "1.3.03";
         public static bool Debug = false;
         private static bool Initilized = false;
 
@@ -139,6 +139,9 @@ namespace SeamlessClientPlugin
                 TryShow("Initilizing Communications!");
                 RunInitilizations();
             }
+
+
+            
             //OnNewPlayerRequest
             //throw new NotImplementedException();
         }
@@ -152,6 +155,8 @@ namespace SeamlessClientPlugin
             // Terrible way to make sure server knows we are running seamless client 
             try
             {
+                
+
                 ClientMessage PingServer = new ClientMessage(ClientMessageType.FirstJoin);
                 MyAPIGateway.Multiplayer?.SendMessageToServer(SeamlessClientNetID, Utilities.Utility.Serialize(PingServer));
             }
