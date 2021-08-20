@@ -13,7 +13,7 @@ With Nexus servers, all data is shared between servers. (Factions, Identities, P
 
 
 ## How to install
-Checkout  https://se-nexus.net/en/SeamlessClient on installation instructions
+Simply install the plguin loader, and check this plugins box to be added to the plugin loaders' active plugin list. (SE will need to be restarted afterwards)
 
 
 
