@@ -9,6 +9,8 @@ using Sandbox.Game.World;
 using Sandbox.Game.World.Generator;
 using Sandbox.Graphics;
 using Sandbox.Graphics.GUI;
+using Sandbox.ModAPI;
+using SeamlessClientPlugin.ClientMessages;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -115,8 +117,10 @@ namespace SeamlessClientPlugin.SeamlessTransfer
 
 
 
-            MethodInfo ConnectToServer = GetMethod(typeof(MyGameService), "ConnectToServer", BindingFlags.Static | BindingFlags.Public);
+            //MethodInfo ConnectToServer = GetMethod(typeof(MyGameService), "ConnectToServer", BindingFlags.Static | BindingFlags.Public);
             MethodInfo LoadingScreenDraw = GetMethod(typeof(MyGuiScreenLoading), "DrawInternal", BindingFlags.Instance | BindingFlags.NonPublic);
+
+
 
 
 
@@ -124,13 +128,19 @@ namespace SeamlessClientPlugin.SeamlessTransfer
             Patcher.Patch(LoadingScreenDraw, prefix: new HarmonyMethod(GetPatchMethod(nameof(DrawInternal))));
             Patcher.Patch(OnJoin, postfix: new HarmonyMethod(GetPatchMethod(nameof(OnUserJoined))));
             Patcher.Patch(LoadingAction, prefix: new HarmonyMethod(GetPatchMethod(nameof(LoadMultiplayerSession))));
-            //Patcher.Patch(ConnectToServer, prefix: new HarmonyMethod(GetPatchMethod(nameof(OnConnectToServer))));
         }
+
+
+
 
         private static MethodInfo GetPatchMethod(string v)
         {
             return typeof(Patches).GetMethod(v, BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
         }
+
+
+
+
 
         #region LoadingScreen
 
@@ -142,6 +152,9 @@ namespace SeamlessClientPlugin.SeamlessTransfer
         private static bool LoadMultiplayerSession(MyObjectBuilder_World world, MyMultiplayerBase multiplayerSession)
         {
 
+            if (SeamlessClient.IsSwitching)
+                return true;
+
 
             MyLog.Default.WriteLine("LoadSession() - Start");
             if (!MyWorkshop.CheckLocalModsAllowed(world.Checkpoint.Mods, allowLocalMods: false))
@@ -150,6 +163,8 @@ namespace SeamlessClientPlugin.SeamlessTransfer
                 MyLog.Default.WriteLine("LoadSession() - End");
                 return false;
             }
+
+
             MyWorkshop.DownloadModsAsync(world.Checkpoint.Mods, delegate (bool success)
             {
                 if (success)
@@ -302,6 +317,9 @@ namespace SeamlessClientPlugin.SeamlessTransfer
             }
         }
 
+
+
+
         private static bool OnConnectToServer(MyGameServerItem server, Action<JoinResult> onDone)
         {
             if (SeamlessClient.IsSwitching)
@@ -314,6 +332,10 @@ namespace SeamlessClientPlugin.SeamlessTransfer
 
 
 
+
+
+
+        /* Patch Utils */
 
         private static MethodInfo GetMethod(Type type, string MethodName, BindingFlags Flags)
         {

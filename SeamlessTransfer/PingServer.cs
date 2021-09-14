@@ -42,11 +42,6 @@ namespace SeamlessClientPlugin.SeamlessTransfer
 
             SwitchServers Switcher = new SwitchServers(E, Request.DeserializeWorldData());
             Switcher.BeginSwitch();
-
-            // MyGameService.OnPingServerResponded += PingResponded;
-            //MyGameService.OnPingServerFailedToRespond += FailedToRespond;
-
-            //MyGameService.PingServer(Transfer.IPAdress);
         }
     }
 }

@@ -123,8 +123,9 @@ namespace SeamlessClientPlugin.SeamlessTransfer
             RemoveOldEntities();
             UpdateWorldGenerator();
 
-
             StartEntitySync();
+
+
 
             MyModAPIHelper.Initialize();
             // Allow the game to start proccessing incoming messages in the buffer
