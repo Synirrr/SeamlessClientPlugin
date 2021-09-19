@@ -1,4 +1,5 @@
 ﻿using Sandbox;
+using Sandbox.Definitions;
 using Sandbox.Engine.Multiplayer;
 using Sandbox.Engine.Networking;
 using Sandbox.Game;
@@ -27,6 +28,7 @@ using VRage.Steam;
 using VRage.Utils;
 using VRageMath;
 using VRageRender;
+using VRageRender.Messages;
 
 namespace SeamlessClientPlugin.SeamlessTransfer
 {
@@ -42,6 +44,8 @@ namespace SeamlessClientPlugin.SeamlessTransfer
         {
             this.TargetServer = TargetServer;
             this.TargetWorld = TargetWorld;
+
+            ModLoader.DownloadNewMods(TargetWorld.Checkpoint.Mods);
         }
 
 
@@ -115,11 +119,31 @@ namespace SeamlessClientPlugin.SeamlessTransfer
 
             MyHud.Chat.RegisterChat(MyMultiplayer.Static);
 
-            MyMultiplayer.Static.OnSessionReady();
+            
 
             LoadConnectedClients();
             LoadOnlinePlayers();
             SetWorldSettings();
+
+
+            ModLoader.ReadyModSwitch();
+            MySector.InitEnvironmentSettings(TargetWorld.Sector.Environment);
+
+
+            MyModAPIHelper.Initialize();
+            string text = ((!string.IsNullOrEmpty(TargetWorld.Checkpoint.CustomSkybox)) ? TargetWorld.Checkpoint.CustomSkybox : MySector.EnvironmentDefinition.EnvironmentTexture);
+            MyRenderProxy.PreloadTextures(new string[1] { text }, TextureType.CubeMap);
+            MySession.Static.LoadDataComponents();
+            MySession.Static.LoadObjectBuildersComponents(TargetWorld.Checkpoint.SessionComponents);
+
+
+            MethodInfo A = typeof(MySession).GetMethod("LoadGameDefinition", BindingFlags.Instance | BindingFlags.NonPublic);
+            A.Invoke(MySession.Static, new object[] { TargetWorld.Checkpoint });
+
+
+       
+            MyMultiplayer.Static.OnSessionReady();
+
             RemoveOldEntities();
             UpdateWorldGenerator();
 
@@ -127,7 +151,7 @@ namespace SeamlessClientPlugin.SeamlessTransfer
 
 
 
-            MyModAPIHelper.Initialize();
+            
             // Allow the game to start proccessing incoming messages in the buffer
             MyMultiplayer.Static.StartProcessingClientMessages();
 
