@@ -10,8 +10,10 @@ using Sandbox.Game.Multiplayer;
 using Sandbox.Game.SessionComponents;
 using Sandbox.Game.World;
 using Sandbox.Game.World.Generator;
+using Sandbox.Graphics.GUI;
 using Sandbox.ModAPI;
 using SeamlessClientPlugin.Utilities;
+using SpaceEngineers.Game.GUI;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -134,11 +136,11 @@ namespace SeamlessClientPlugin.SeamlessTransfer
             string text = ((!string.IsNullOrEmpty(TargetWorld.Checkpoint.CustomSkybox)) ? TargetWorld.Checkpoint.CustomSkybox : MySector.EnvironmentDefinition.EnvironmentTexture);
             MyRenderProxy.PreloadTextures(new string[1] { text }, TextureType.CubeMap);
             MySession.Static.LoadDataComponents();
-            MySession.Static.LoadObjectBuildersComponents(TargetWorld.Checkpoint.SessionComponents);
+            // MySession.Static.LoadObjectBuildersComponents(TargetWorld.Checkpoint.SessionComponents);
 
 
-            MethodInfo A = typeof(MySession).GetMethod("LoadGameDefinition", BindingFlags.Instance | BindingFlags.NonPublic);
-            A.Invoke(MySession.Static, new object[] { TargetWorld.Checkpoint });
+            //MethodInfo A = typeof(MySession).GetMethod("LoadGameDefinition", BindingFlags.Instance | BindingFlags.NonPublic);
+            // A.Invoke(MySession.Static, new object[] { TargetWorld.Checkpoint });
 
 
        
@@ -426,6 +428,10 @@ namespace SeamlessClientPlugin.SeamlessTransfer
             MyMultiplayer.Static.ReplicationLayer.Dispose();
             MyMultiplayer.Static.Dispose();
             MyMultiplayer.Static = null;
+
+            //Close any respawn screens that are open
+            MyGuiScreenMedicals.Close();
+
         }
 
         private void RemoveOldEntities()

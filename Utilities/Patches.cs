@@ -121,13 +121,16 @@ namespace SeamlessClientPlugin.SeamlessTransfer
             MethodInfo LoadingScreenDraw = GetMethod(typeof(MyGuiScreenLoading), "DrawInternal", BindingFlags.Instance | BindingFlags.NonPublic);
 
 
-
+           
 
 
 
             Patcher.Patch(LoadingScreenDraw, prefix: new HarmonyMethod(GetPatchMethod(nameof(DrawInternal))));
             Patcher.Patch(OnJoin, postfix: new HarmonyMethod(GetPatchMethod(nameof(OnUserJoined))));
             Patcher.Patch(LoadingAction, prefix: new HarmonyMethod(GetPatchMethod(nameof(LoadMultiplayerSession))));
+
+
+
         }
 
 
@@ -152,8 +155,8 @@ namespace SeamlessClientPlugin.SeamlessTransfer
         private static bool LoadMultiplayerSession(MyObjectBuilder_World world, MyMultiplayerBase multiplayerSession)
         {
 
-            if (SeamlessClient.IsSwitching)
-                return true;
+          //
+
 
 
             MyLog.Default.WriteLine("LoadSession() - Start");
@@ -163,6 +166,9 @@ namespace SeamlessClientPlugin.SeamlessTransfer
                 MyLog.Default.WriteLine("LoadSession() - End");
                 return false;
             }
+
+            MyLog.Default.WriteLine("Seamless Downloading mods!");
+
 
 
             MyWorkshop.DownloadModsAsync(world.Checkpoint.Mods, delegate (bool success)

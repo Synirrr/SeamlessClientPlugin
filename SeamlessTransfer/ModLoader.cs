@@ -91,11 +91,12 @@ namespace SeamlessClientPlugin.SeamlessTransfer
             if (!DownloadSuccess)
                 return;
 
+            /*
             MySession.Static.ScriptManager.LoadData();
             MyDefinitionManager.Static.LoadData(TargetServerMods);
             MyLocalCache.PreloadLocalInventoryConfig();
             SeamlessClient.TryShow("Finished transfering!");
-
+            */
         }
 
 
