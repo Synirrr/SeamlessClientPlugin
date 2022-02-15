@@ -114,7 +114,7 @@ namespace SeamlessClientPlugin
 
 
         public const ushort SeamlessClientNetID = 2936;
-        private static System.Timers.Timer PingTimer = new System.Timers.Timer(3000);
+        private static System.Timers.Timer PingTimer = new System.Timers.Timer(500);
 
         public static bool IsSwitching = false;
         public static bool RanJoin = false;
@@ -123,16 +123,14 @@ namespace SeamlessClientPlugin
 
         public void Init(object gameInstance)
         {
-            Patches.GetPatches();
+           
             TryShow("Running Seamless Client Plugin v[" + Version + "]");
-           // PingTimer.Elapsed += PingTimer_Elapsed;
-           // PingTimer.Start();
+           
 
 
 
           
         }
-
 
 
         public void Update()
@@ -143,10 +141,13 @@ namespace SeamlessClientPlugin
 
             if (!Initilized)
             {
+                Patches.GetPatches();
                 TryShow("Initilizing Communications!");
                 RunInitilizations();
             }
         }
+
+        
 
 
 
@@ -158,7 +159,6 @@ namespace SeamlessClientPlugin
 
         public static void DisposeInitilizations()
         {
-            PingTimer.Stop();
             MyAPIGateway.Multiplayer?.UnregisterSecureMessageHandler(SeamlessClientNetID, MessageHandler);
             Initilized = false;
             

@@ -22,6 +22,7 @@ using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using VRage;
+using VRage.Collections;
 using VRage.Game;
 using VRage.Game.Components;
 using VRage.Game.ModAPI;
@@ -42,12 +43,15 @@ namespace SeamlessClientPlugin.SeamlessTransfer
         private string OldArmorSkin { get; set; } = string.Empty;
 
 
+
+
+
         public SwitchServers(MyGameServerItem TargetServer, MyObjectBuilder_World TargetWorld)
         {
             this.TargetServer = TargetServer;
             this.TargetWorld = TargetWorld;
 
-            ModLoader.DownloadNewMods(TargetWorld.Checkpoint.Mods);
+            //ModLoader.DownloadNewMods(TargetWorld.Checkpoint.Mods);
         }
 
 
@@ -61,7 +65,7 @@ namespace SeamlessClientPlugin.SeamlessTransfer
                 MySession.Static.SetCameraController(MyCameraControllerEnum.SpectatorFixed);
                 UnloadCurrentServer();
                 SetNewMultiplayerClient();
-
+                SeamlessClient.IsSwitching = false;
 
 
             }, "SeamlessClient");
@@ -119,23 +123,75 @@ namespace SeamlessClientPlugin.SeamlessTransfer
         {
         
 
-            MyHud.Chat.RegisterChat(MyMultiplayer.Static);
+       
 
-            
+
+            SetWorldSettings();
 
             LoadConnectedClients();
             LoadOnlinePlayers();
-            SetWorldSettings();
+           
 
 
-            ModLoader.ReadyModSwitch();
+            //ModLoader.ReadyModSwitch(TargetWorld.Checkpoint, TargetWorld.Sector);
             MySector.InitEnvironmentSettings(TargetWorld.Sector.Environment);
 
 
-            MyModAPIHelper.Initialize();
+
+
+
+            //MethodInfo inf = typeof(MySession).GetMethod("LoadGameDefinition", BindingFlags.NonPublic | BindingFlags.Instance, null, new Type[1] { typeof(MyObjectBuilder_Checkpoint) }, null);
+            //inf.Invoke(MySession.Static, new object[] { TargetWorld.Checkpoint });
+
+            /*
+            CachingDictionary<Type, MySessionComponentBase> dic = (CachingDictionary<Type, MySessionComponentBase>)typeof(MySession).GetField("m_sessionComponents", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(MySession.Static);
+
+            foreach (var item in dic.ToList())
+            {
+                if (item.Value.ModContext != null)
+                    dic.Remove(item.Key, true);
+            }
+
+
+            foreach (KeyValuePair<MyModContext, HashSet<MyStringId>> item in MyScriptManager.Static.ScriptsPerMod)
+            {
+                MyStringId key = item.Value.First();
+                MySession.Static.RegisterComponentsFromAssembly(MyScriptManager.Static.Scripts[key], true, item.Key);
+            }
+
+
+
+            List<MySessionComponentBase> dic1 = (List<MySessionComponentBase>)typeof(MySession).GetField("m_sessionComponentForDrawAsync", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(MySession.Static);
+            List<MySessionComponentBase> dic2 = (List<MySessionComponentBase>)typeof(MySession).GetField("m_sessionComponentForDraw", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(MySession.Static);
+
+            dic1.Clear();
+            dic2.Clear();
+
+            foreach (MySessionComponentBase value in dic.Values)
+            {
+
+
+                if (value.ModContext == null || value.ModContext.IsBaseGame)
+                {
+                    dic1.Add(value);
+                }
+                else
+                {
+                    dic2.Add(value);
+                }
+            }
+
+            */
+
+
             string text = ((!string.IsNullOrEmpty(TargetWorld.Checkpoint.CustomSkybox)) ? TargetWorld.Checkpoint.CustomSkybox : MySector.EnvironmentDefinition.EnvironmentTexture);
             MyRenderProxy.PreloadTextures(new string[1] { text }, TextureType.CubeMap);
+
+            MyModAPIHelper.Initialize();
             MySession.Static.LoadDataComponents();
+
+            //MySession.Static.LoadObjectBuildersComponents(TargetWorld.Checkpoint.SessionComponents);
+            MyModAPIHelper.Initialize();
             // MySession.Static.LoadObjectBuildersComponents(TargetWorld.Checkpoint.SessionComponents);
 
 
@@ -143,7 +199,7 @@ namespace SeamlessClientPlugin.SeamlessTransfer
             // A.Invoke(MySession.Static, new object[] { TargetWorld.Checkpoint });
 
 
-       
+
             MyMultiplayer.Static.OnSessionReady();
 
             RemoveOldEntities();
@@ -152,8 +208,22 @@ namespace SeamlessClientPlugin.SeamlessTransfer
             StartEntitySync();
 
 
+            MyHud.Chat.RegisterChat(MyMultiplayer.Static);
 
-            
+            /*
+            foreach (MySessionComponentBase value in dic.Values)
+            {
+
+                if(value.ModContext != null)
+                {
+                    SeamlessClient.TryShow($"{value.Definition?.ToString()} - {value.ModContext.ModName}");
+                    value.BeforeStart();
+                }
+
+               
+            }
+            */
+
             // Allow the game to start proccessing incoming messages in the buffer
             MyMultiplayer.Static.StartProcessingClientMessages();
 
@@ -161,6 +231,9 @@ namespace SeamlessClientPlugin.SeamlessTransfer
             MyGuiScreenHudSpace.Static.RecreateControls(true);
             //MySession.Static.LocalHumanPlayer.BuildArmorSkin = OldArmorSkin;
         }
+
+
+
 
 
         private void LoadOnlinePlayers()
@@ -420,7 +493,7 @@ namespace SeamlessClientPlugin.SeamlessTransfer
             Sync.Clients.Clear();
             Sync.Players.ClearPlayers();
 
-
+ 
             MyHud.Chat.UnregisterChat(MyMultiplayer.Static);
             MySession.Static.Gpss.RemovePlayerGpss(MySession.Static.LocalPlayerId);
             MyHud.GpsMarkers.Clear();
@@ -428,9 +501,11 @@ namespace SeamlessClientPlugin.SeamlessTransfer
             MyMultiplayer.Static.ReplicationLayer.Dispose();
             MyMultiplayer.Static.Dispose();
             MyMultiplayer.Static = null;
-
+        
             //Close any respawn screens that are open
             MyGuiScreenMedicals.Close();
+
+            //MySession.Static.UnloadDataComponents();
 
         }
 

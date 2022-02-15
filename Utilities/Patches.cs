@@ -3,6 +3,7 @@ using Sandbox.Engine.Analytics;
 using Sandbox.Engine.Multiplayer;
 using Sandbox.Engine.Networking;
 using Sandbox.Game;
+using Sandbox.Game.Entities;
 using Sandbox.Game.Gui;
 using Sandbox.Game.Multiplayer;
 using Sandbox.Game.World;
@@ -19,8 +20,10 @@ using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using VRage;
+using VRage.Collections;
 using VRage.FileSystem;
 using VRage.Game;
+using VRage.Game.Entity;
 using VRage.GameServices;
 using VRage.Network;
 using VRage.Utils;
@@ -79,6 +82,8 @@ namespace SeamlessClientPlugin.SeamlessTransfer
 
 
 
+        private static FieldInfo MBuffer;
+
         public static void GetPatches()
         {
             //Get reflected values and store them
@@ -101,7 +106,7 @@ namespace SeamlessClientPlugin.SeamlessTransfer
             RemoteAdminSettings = GetField(typeof(MySession), "m_remoteAdminSettings", BindingFlags.Instance | BindingFlags.NonPublic);
             MPlayerGPSCollection = GetField(typeof(MyPlayerCollection), "m_players", BindingFlags.Instance | BindingFlags.NonPublic);
 
-
+            MBuffer = GetField(MyTransportLayerType, "m_buffer", BindingFlags.Instance | BindingFlags.NonPublic);
 
 
             /* Get Methods */
@@ -121,13 +126,21 @@ namespace SeamlessClientPlugin.SeamlessTransfer
             MethodInfo LoadingScreenDraw = GetMethod(typeof(MyGuiScreenLoading), "DrawInternal", BindingFlags.Instance | BindingFlags.NonPublic);
 
 
-           
+
+            //Test patches
+            MethodInfo SetPlayerDed = GetMethod(typeof(MyPlayerCollection), "SetPlayerDeadInternal", BindingFlags.Instance | BindingFlags.NonPublic);
+
+
+
+          
+
 
 
 
             Patcher.Patch(LoadingScreenDraw, prefix: new HarmonyMethod(GetPatchMethod(nameof(DrawInternal))));
             Patcher.Patch(OnJoin, postfix: new HarmonyMethod(GetPatchMethod(nameof(OnUserJoined))));
             Patcher.Patch(LoadingAction, prefix: new HarmonyMethod(GetPatchMethod(nameof(LoadMultiplayerSession))));
+            Patcher.Patch(SetPlayerDed, prefix: new HarmonyMethod(GetPatchMethod(nameof(SetPlayerDeadInternal))));
 
 
 
@@ -424,6 +437,69 @@ namespace SeamlessClientPlugin.SeamlessTransfer
 
 
         }
+
+
+
+        private static bool SetPlayerDeadInternal(MyPlayerCollection __instance, bool __result, ulong playerSteamId, int playerSerialId, bool deadState, bool resetIdentity)
+        {
+
+            FieldInfo ControlledEntities = typeof(MyPlayerCollection).GetField("m_controlledEntities", BindingFlags.Instance | BindingFlags.NonPublic);
+            MethodInfo RemoveControlledEntity = typeof(MyPlayerCollection).GetMethod("RemoveControlledEntityInternal", BindingFlags.Instance | BindingFlags.NonPublic);
+
+            CachingDictionary<long, MyPlayer.PlayerId> m_controlledEntities = (CachingDictionary<long, MyPlayer.PlayerId>)ControlledEntities.GetValue(__instance);
+
+
+
+
+            MyPlayer.PlayerId id = new MyPlayer.PlayerId(playerSteamId, playerSerialId);
+            MyPlayer playerById = Sync.Players.GetPlayerById(id);
+            if (playerById == null)
+            {
+                __result = false;
+                return false;
+            }
+            if (playerById.Identity == null)
+            {
+                __result = false;
+                return false;
+            }
+            playerById.Identity.SetDead(resetIdentity);
+            if (deadState)
+            {
+
+                SeamlessClient.TryShow($"Player: {playerSteamId}, SerialID: {playerSerialId} deadstate: {deadState}, resetIdentity: {resetIdentity}");
+
+                playerById.Controller.TakeControl(null);
+                foreach (KeyValuePair<long, MyPlayer.PlayerId> controlledEntity in m_controlledEntities)
+                {
+                    if (controlledEntity.Value == playerById.Id)
+                    {
+                        MyEntity entity = null;
+                        MyEntities.TryGetEntityById(controlledEntity.Key, out entity);
+                        if (entity != null)
+                        {
+                            //RemoveControlledEntityInternal(entity, false);
+                            RemoveControlledEntity.Invoke(__instance, new object[] { entity, false });
+                        }
+                    }
+                }
+
+             
+
+                m_controlledEntities.ApplyRemovals();
+                if (Sync.Clients.LocalClient != null && playerById == Sync.Clients.LocalClient.FirstPlayer)
+                {
+                    MyPlayer P = Sync.Clients.LocalClient.FirstPlayer;
+                    SeamlessClient.TryShow($"FirstPlayerName: {P.DisplayName}, ID: {P.Id.SteamId}, Serial: {P.Id.SerialId}");
+                    SeamlessClient.TryShow(Environment.StackTrace);
+                    MyPlayerCollection.RequestLocalRespawn();
+                }
+            }
+
+            __result = true;
+            return false;
+        }
+
 
 
     }
