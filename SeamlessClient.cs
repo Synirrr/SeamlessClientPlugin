@@ -18,6 +18,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Timers;
 using System.Windows.Forms;
+using VRage.Game.ModAPI;
 using VRage.Input;
 using VRage.Plugins;
 using VRage.Utils;
@@ -107,13 +108,13 @@ namespace SeamlessClientPlugin
 
 
         public static string Version = "1.3.04";
-        public static bool Debug = false;
+        public static bool Debug = true;
         private static bool Initilized = false;
 
 
 
         public const ushort SeamlessClientNetID = 2936;
-        private static System.Timers.Timer PingTimer = new System.Timers.Timer(3000);
+        private static System.Timers.Timer PingTimer = new System.Timers.Timer(500);
 
         public static bool IsSwitching = false;
         public static bool RanJoin = false;
@@ -122,10 +123,13 @@ namespace SeamlessClientPlugin
 
         public void Init(object gameInstance)
         {
-            Patches.GetPatches();
+           
             TryShow("Running Seamless Client Plugin v[" + Version + "]");
-            PingTimer.Elapsed += PingTimer_Elapsed;
-            PingTimer.Start();
+           
+
+
+
+          
         }
 
 
@@ -134,40 +138,18 @@ namespace SeamlessClientPlugin
             if (MyAPIGateway.Multiplayer == null)
                 return;
 
+
             if (!Initilized)
             {
+                Patches.GetPatches();
                 TryShow("Initilizing Communications!");
                 RunInitilizations();
             }
-
-
-            
-            //OnNewPlayerRequest
-            //throw new NotImplementedException();
         }
 
+        
 
 
-
-
-        private void PingTimer_Elapsed(object sender, ElapsedEventArgs e)
-        {
-            // Terrible way to make sure server knows we are running seamless client 
-            try
-            {
-                
-
-                ClientMessage PingServer = new ClientMessage(ClientMessageType.FirstJoin);
-                MyAPIGateway.Multiplayer?.SendMessageToServer(SeamlessClientNetID, Utilities.Utility.Serialize(PingServer));
-            }
-            catch (Exception ex)
-            {
-                //TryShow(ex.ToString());
-            }
-        }
-
-
-   
 
         public static void RunInitilizations()
         {
@@ -177,7 +159,6 @@ namespace SeamlessClientPlugin
 
         public static void DisposeInitilizations()
         {
-            PingTimer.Stop();
             MyAPIGateway.Multiplayer?.UnregisterSecureMessageHandler(SeamlessClientNetID, MessageHandler);
             Initilized = false;
             
@@ -189,12 +170,17 @@ namespace SeamlessClientPlugin
             try
             {
                 ClientMessage Recieved = Utilities.Utility.Deserialize<ClientMessage>(obj2);
-                if (Recieved.MessageType == ClientMessageType.TransferServer)
+
+                if(Recieved.MessageType == ClientMessageType.FirstJoin)
                 {
+                    //Server sent a first join message! Send a reply back so the server knows what version we are on
+                    ClientMessage PingServer = new ClientMessage(ClientMessageType.FirstJoin);
+                    MyAPIGateway.Multiplayer?.SendMessageToServer(SeamlessClientNetID, Utilities.Utility.Serialize(PingServer));
+                }
+                else if (Recieved.MessageType == ClientMessageType.TransferServer)
+                {
+                    //Server sent a transfer message! Begin transfer via seamless
                     Transfer TransferMessage = Recieved.GetTransferData();
-
-
-
                     ServerPing.StartServerPing(TransferMessage);
                 }
             }
@@ -212,6 +198,8 @@ namespace SeamlessClientPlugin
 
             MyLog.Default?.WriteLineAndConsole($"SeamlessClient: {message}");
         }
+
+        
 
         public void Dispose()
         {

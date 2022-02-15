@@ -1,4 +1,5 @@
 ﻿using Sandbox;
+using Sandbox.Definitions;
 using Sandbox.Engine.Multiplayer;
 using Sandbox.Engine.Networking;
 using Sandbox.Game;
@@ -9,8 +10,10 @@ using Sandbox.Game.Multiplayer;
 using Sandbox.Game.SessionComponents;
 using Sandbox.Game.World;
 using Sandbox.Game.World.Generator;
+using Sandbox.Graphics.GUI;
 using Sandbox.ModAPI;
 using SeamlessClientPlugin.Utilities;
+using SpaceEngineers.Game.GUI;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -19,6 +22,7 @@ using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using VRage;
+using VRage.Collections;
 using VRage.Game;
 using VRage.Game.Components;
 using VRage.Game.ModAPI;
@@ -27,6 +31,7 @@ using VRage.Steam;
 using VRage.Utils;
 using VRageMath;
 using VRageRender;
+using VRageRender.Messages;
 
 namespace SeamlessClientPlugin.SeamlessTransfer
 {
@@ -38,10 +43,15 @@ namespace SeamlessClientPlugin.SeamlessTransfer
         private string OldArmorSkin { get; set; } = string.Empty;
 
 
+
+
+
         public SwitchServers(MyGameServerItem TargetServer, MyObjectBuilder_World TargetWorld)
         {
             this.TargetServer = TargetServer;
             this.TargetWorld = TargetWorld;
+
+            //ModLoader.DownloadNewMods(TargetWorld.Checkpoint.Mods);
         }
 
 
@@ -55,7 +65,7 @@ namespace SeamlessClientPlugin.SeamlessTransfer
                 MySession.Static.SetCameraController(MyCameraControllerEnum.SpectatorFixed);
                 UnloadCurrentServer();
                 SetNewMultiplayerClient();
-
+                SeamlessClient.IsSwitching = false;
 
 
             }, "SeamlessClient");
@@ -90,10 +100,6 @@ namespace SeamlessClientPlugin.SeamlessTransfer
             Sync.Clients.SetLocalSteamId(Sync.MyId, false, MyGameService.UserName);
             Sync.Players.RegisterEvents();
 
-
-
-
-
         }
 
 
@@ -111,29 +117,59 @@ namespace SeamlessClientPlugin.SeamlessTransfer
 
         private void ForceClientConnection()
         {
-        
+       
+            //Set World Settings
+            SetWorldSettings();
 
-            MyHud.Chat.RegisterChat(MyMultiplayer.Static);
+            //Load force load any connected players
+            LoadConnectedClients();
+
+           
+
+            MySector.InitEnvironmentSettings(TargetWorld.Sector.Environment);
+
+
+
+            string text = ((!string.IsNullOrEmpty(TargetWorld.Checkpoint.CustomSkybox)) ? TargetWorld.Checkpoint.CustomSkybox : MySector.EnvironmentDefinition.EnvironmentTexture);
+            MyRenderProxy.PreloadTextures(new string[1] { text }, TextureType.CubeMap);
+
+            MyModAPIHelper.Initialize();
+            MySession.Static.LoadDataComponents();
+
+            //MySession.Static.LoadObjectBuildersComponents(TargetWorld.Checkpoint.SessionComponents);
+            MyModAPIHelper.Initialize();
+            // MySession.Static.LoadObjectBuildersComponents(TargetWorld.Checkpoint.SessionComponents);
+
+
+            //MethodInfo A = typeof(MySession).GetMethod("LoadGameDefinition", BindingFlags.Instance | BindingFlags.NonPublic);
+            // A.Invoke(MySession.Static, new object[] { TargetWorld.Checkpoint });
+
+
 
             MyMultiplayer.Static.OnSessionReady();
 
-            LoadConnectedClients();
-            LoadOnlinePlayers();
-            SetWorldSettings();
             RemoveOldEntities();
             UpdateWorldGenerator();
 
-
             StartEntitySync();
 
-            MyModAPIHelper.Initialize();
+
+            MyHud.Chat.RegisterChat(MyMultiplayer.Static);
+            Patches.GPSRegisterChat.Invoke(MySession.Static.Gpss, new object[] { MyMultiplayer.Static });
+
+
             // Allow the game to start proccessing incoming messages in the buffer
             MyMultiplayer.Static.StartProcessingClientMessages();
 
             //Recreate all controls... Will fix weird gui/paint/crap
             MyGuiScreenHudSpace.Static.RecreateControls(true);
             //MySession.Static.LocalHumanPlayer.BuildArmorSkin = OldArmorSkin;
+
+           
         }
+
+
+
 
 
         private void LoadOnlinePlayers()
@@ -288,8 +324,7 @@ namespace SeamlessClientPlugin.SeamlessTransfer
 
         private void LoadConnectedClients()
         {
-          
-
+         
             Patches.LoadMembersFromWorld.Invoke(MySession.Static, new object[] { TargetWorld, MyMultiplayer.Static });
 
 
@@ -297,13 +332,9 @@ namespace SeamlessClientPlugin.SeamlessTransfer
             object VirtualClientsValue = Patches.VirtualClients.GetValue(MySession.Static);
             Patches.InitVirtualClients.Invoke(VirtualClientsValue, null);
 
-            /*
-            SeamlessClient.TryShow("Loading exsisting Members From World!");
-            foreach (var Client in TargetWorld.Checkpoint.Clients)
-            {
-                SeamlessClient.TryShow("Adding New Client: " + Client.Name);
-                Sync.Clients.AddClient(Client.SteamId, Client.Name);
-            }*/
+
+            //load online players
+            LoadOnlinePlayers();
 
         }
 
@@ -342,6 +373,7 @@ namespace SeamlessClientPlugin.SeamlessTransfer
             MyMultiplayer.Static.PendingReplicablesDone -= MyMultiplayer_PendingReplicablesDone;
         }
 
+
         private void UpdateWorldGenerator()
         {
             //This will re-init the MyProceduralWorldGenerator. (Not doing this will result in asteroids not rendering in properly)
@@ -361,11 +393,8 @@ namespace SeamlessClientPlugin.SeamlessTransfer
                 Generator.Init(GeneratorSettings);
             }
 
-
-
             //Force component to reload, re-syncing settings and seeds to the destination server
             Generator.LoadData();
-
 
             //We need to go in and force planets to be empty areas in the generator. This is originially done on planet init.
             FieldInfo PlanetInitArgs = typeof(MyPlanet).GetField("m_planetInitValues", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
@@ -393,7 +422,7 @@ namespace SeamlessClientPlugin.SeamlessTransfer
             Sync.Clients.Clear();
             Sync.Players.ClearPlayers();
 
-
+ 
             MyHud.Chat.UnregisterChat(MyMultiplayer.Static);
             MySession.Static.Gpss.RemovePlayerGpss(MySession.Static.LocalPlayerId);
             MyHud.GpsMarkers.Clear();
@@ -401,6 +430,12 @@ namespace SeamlessClientPlugin.SeamlessTransfer
             MyMultiplayer.Static.ReplicationLayer.Dispose();
             MyMultiplayer.Static.Dispose();
             MyMultiplayer.Static = null;
+        
+            //Close any respawn screens that are open
+            MyGuiScreenMedicals.Close();
+
+            //MySession.Static.UnloadDataComponents();
+
         }
 
         private void RemoveOldEntities()

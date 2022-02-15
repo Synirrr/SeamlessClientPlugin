@@ -40,13 +40,10 @@ namespace SeamlessClientPlugin.SeamlessTransfer
 
             SeamlessClient.TryShow("Beginning Redirect to server: " + Transfer.TargetServerID);
 
+          
+
             SwitchServers Switcher = new SwitchServers(E, Request.DeserializeWorldData());
             Switcher.BeginSwitch();
-
-            // MyGameService.OnPingServerResponded += PingResponded;
-            //MyGameService.OnPingServerFailedToRespond += FailedToRespond;
-
-            //MyGameService.PingServer(Transfer.IPAdress);
         }
     }
 }

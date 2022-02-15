@@ -3,12 +3,15 @@ using Sandbox.Engine.Analytics;
 using Sandbox.Engine.Multiplayer;
 using Sandbox.Engine.Networking;
 using Sandbox.Game;
+using Sandbox.Game.Entities;
 using Sandbox.Game.Gui;
 using Sandbox.Game.Multiplayer;
 using Sandbox.Game.World;
 using Sandbox.Game.World.Generator;
 using Sandbox.Graphics;
 using Sandbox.Graphics.GUI;
+using Sandbox.ModAPI;
+using SeamlessClientPlugin.ClientMessages;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -17,8 +20,10 @@ using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using VRage;
+using VRage.Collections;
 using VRage.FileSystem;
 using VRage.Game;
+using VRage.Game.Entity;
 using VRage.GameServices;
 using VRage.Network;
 using VRage.Utils;
@@ -64,6 +69,7 @@ namespace SeamlessClientPlugin.SeamlessTransfer
         public static MethodInfo LoadPlayerInternal { get; private set; }
         public static MethodInfo LoadMembersFromWorld { get; private set; }
         public static MethodInfo LoadMultiplayer { get; private set; }
+        public static MethodInfo GPSRegisterChat { get; private set; }
 
         public static MethodInfo SendPlayerData;
 
@@ -76,6 +82,8 @@ namespace SeamlessClientPlugin.SeamlessTransfer
         public static MethodInfo UnloadProceduralWorldGenerator;
 
 
+
+        private static FieldInfo MBuffer;
 
         public static void GetPatches()
         {
@@ -99,7 +107,7 @@ namespace SeamlessClientPlugin.SeamlessTransfer
             RemoteAdminSettings = GetField(typeof(MySession), "m_remoteAdminSettings", BindingFlags.Instance | BindingFlags.NonPublic);
             MPlayerGPSCollection = GetField(typeof(MyPlayerCollection), "m_players", BindingFlags.Instance | BindingFlags.NonPublic);
 
-
+            MBuffer = GetField(MyTransportLayerType, "m_buffer", BindingFlags.Instance | BindingFlags.NonPublic);
 
 
             /* Get Methods */
@@ -111,12 +119,21 @@ namespace SeamlessClientPlugin.SeamlessTransfer
             LoadMultiplayer = GetMethod(typeof(MySession), "LoadMultiplayer", BindingFlags.Static | BindingFlags.NonPublic);
             SendPlayerData = GetMethod(ClientType, "SendPlayerData", BindingFlags.Instance | BindingFlags.NonPublic);
             UnloadProceduralWorldGenerator = GetMethod(typeof(MyProceduralWorldGenerator), "UnloadData", BindingFlags.Instance | BindingFlags.NonPublic);
+            GPSRegisterChat = GetMethod(typeof(MyGpsCollection), "RegisterChat", BindingFlags.Instance | BindingFlags.NonPublic);
 
 
 
-
-            MethodInfo ConnectToServer = GetMethod(typeof(MyGameService), "ConnectToServer", BindingFlags.Static | BindingFlags.Public);
+            //MethodInfo ConnectToServer = GetMethod(typeof(MyGameService), "ConnectToServer", BindingFlags.Static | BindingFlags.Public);
             MethodInfo LoadingScreenDraw = GetMethod(typeof(MyGuiScreenLoading), "DrawInternal", BindingFlags.Instance | BindingFlags.NonPublic);
+
+
+
+            //Test patches
+            //MethodInfo SetPlayerDed = GetMethod(typeof(MyPlayerCollection), "SetPlayerDeadInternal", BindingFlags.Instance | BindingFlags.NonPublic);
+
+
+
+          
 
 
 
@@ -124,13 +141,23 @@ namespace SeamlessClientPlugin.SeamlessTransfer
             Patcher.Patch(LoadingScreenDraw, prefix: new HarmonyMethod(GetPatchMethod(nameof(DrawInternal))));
             Patcher.Patch(OnJoin, postfix: new HarmonyMethod(GetPatchMethod(nameof(OnUserJoined))));
             Patcher.Patch(LoadingAction, prefix: new HarmonyMethod(GetPatchMethod(nameof(LoadMultiplayerSession))));
-            //Patcher.Patch(ConnectToServer, prefix: new HarmonyMethod(GetPatchMethod(nameof(OnConnectToServer))));
+            //Patcher.Patch(SetPlayerDed, prefix: new HarmonyMethod(GetPatchMethod(nameof(SetPlayerDeadInternal))));
+
+
+
         }
+
+
+
 
         private static MethodInfo GetPatchMethod(string v)
         {
             return typeof(Patches).GetMethod(v, BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
         }
+
+
+
+
 
         #region LoadingScreen
 
@@ -142,6 +169,9 @@ namespace SeamlessClientPlugin.SeamlessTransfer
         private static bool LoadMultiplayerSession(MyObjectBuilder_World world, MyMultiplayerBase multiplayerSession)
         {
 
+          //
+
+
 
             MyLog.Default.WriteLine("LoadSession() - Start");
             if (!MyWorkshop.CheckLocalModsAllowed(world.Checkpoint.Mods, allowLocalMods: false))
@@ -150,6 +180,11 @@ namespace SeamlessClientPlugin.SeamlessTransfer
                 MyLog.Default.WriteLine("LoadSession() - End");
                 return false;
             }
+
+            MyLog.Default.WriteLine("Seamless Downloading mods!");
+
+
+
             MyWorkshop.DownloadModsAsync(world.Checkpoint.Mods, delegate (bool success)
             {
                 if (success)
@@ -302,6 +337,9 @@ namespace SeamlessClientPlugin.SeamlessTransfer
             }
         }
 
+
+
+
         private static bool OnConnectToServer(MyGameServerItem server, Action<JoinResult> onDone)
         {
             if (SeamlessClient.IsSwitching)
@@ -314,6 +352,10 @@ namespace SeamlessClientPlugin.SeamlessTransfer
 
 
 
+
+
+
+        /* Patch Utils */
 
         private static MethodInfo GetMethod(Type type, string MethodName, BindingFlags Flags)
         {
@@ -393,10 +435,6 @@ namespace SeamlessClientPlugin.SeamlessTransfer
             {
                 throw Ex;
             }
-
-
         }
-
-
     }
 }
