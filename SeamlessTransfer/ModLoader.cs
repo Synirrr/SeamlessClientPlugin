@@ -131,7 +131,7 @@ namespace SeamlessClientPlugin.SeamlessTransfer
 
             MyGuiTextures.Static.Unload();
             MySession.Static.ScriptManager.Init(checkpoint.ScriptManagerData);
-            MyDefinitionManager.Static.LoadData(TargetServerMods);
+            //MyDefinitionManager.Static.LoadData(TargetServerMods);
             PrepareBaseSession.Invoke(null, new object[] { sector });
 
 

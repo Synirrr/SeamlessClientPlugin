@@ -100,10 +100,6 @@ namespace SeamlessClientPlugin.SeamlessTransfer
             Sync.Clients.SetLocalSteamId(Sync.MyId, false, MyGameService.UserName);
             Sync.Players.RegisterEvents();
 
-
-
-
-
         }
 
 
@@ -121,67 +117,17 @@ namespace SeamlessClientPlugin.SeamlessTransfer
 
         private void ForceClientConnection()
         {
-        
-
        
-
-
+            //Set World Settings
             SetWorldSettings();
 
+            //Load force load any connected players
             LoadConnectedClients();
-            LoadOnlinePlayers();
+
            
 
-
-            //ModLoader.ReadyModSwitch(TargetWorld.Checkpoint, TargetWorld.Sector);
             MySector.InitEnvironmentSettings(TargetWorld.Sector.Environment);
 
-
-
-
-
-            //MethodInfo inf = typeof(MySession).GetMethod("LoadGameDefinition", BindingFlags.NonPublic | BindingFlags.Instance, null, new Type[1] { typeof(MyObjectBuilder_Checkpoint) }, null);
-            //inf.Invoke(MySession.Static, new object[] { TargetWorld.Checkpoint });
-
-            /*
-            CachingDictionary<Type, MySessionComponentBase> dic = (CachingDictionary<Type, MySessionComponentBase>)typeof(MySession).GetField("m_sessionComponents", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(MySession.Static);
-
-            foreach (var item in dic.ToList())
-            {
-                if (item.Value.ModContext != null)
-                    dic.Remove(item.Key, true);
-            }
-
-
-            foreach (KeyValuePair<MyModContext, HashSet<MyStringId>> item in MyScriptManager.Static.ScriptsPerMod)
-            {
-                MyStringId key = item.Value.First();
-                MySession.Static.RegisterComponentsFromAssembly(MyScriptManager.Static.Scripts[key], true, item.Key);
-            }
-
-
-
-            List<MySessionComponentBase> dic1 = (List<MySessionComponentBase>)typeof(MySession).GetField("m_sessionComponentForDrawAsync", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(MySession.Static);
-            List<MySessionComponentBase> dic2 = (List<MySessionComponentBase>)typeof(MySession).GetField("m_sessionComponentForDraw", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(MySession.Static);
-
-            dic1.Clear();
-            dic2.Clear();
-
-            foreach (MySessionComponentBase value in dic.Values)
-            {
-
-
-                if (value.ModContext == null || value.ModContext.IsBaseGame)
-                {
-                    dic1.Add(value);
-                }
-                else
-                {
-                    dic2.Add(value);
-                }
-            }
-
-            */
 
 
             string text = ((!string.IsNullOrEmpty(TargetWorld.Checkpoint.CustomSkybox)) ? TargetWorld.Checkpoint.CustomSkybox : MySector.EnvironmentDefinition.EnvironmentTexture);
@@ -209,20 +155,8 @@ namespace SeamlessClientPlugin.SeamlessTransfer
 
 
             MyHud.Chat.RegisterChat(MyMultiplayer.Static);
+            Patches.GPSRegisterChat.Invoke(MySession.Static.Gpss, new object[] { MyMultiplayer.Static });
 
-            /*
-            foreach (MySessionComponentBase value in dic.Values)
-            {
-
-                if(value.ModContext != null)
-                {
-                    SeamlessClient.TryShow($"{value.Definition?.ToString()} - {value.ModContext.ModName}");
-                    value.BeforeStart();
-                }
-
-               
-            }
-            */
 
             // Allow the game to start proccessing incoming messages in the buffer
             MyMultiplayer.Static.StartProcessingClientMessages();
@@ -230,6 +164,8 @@ namespace SeamlessClientPlugin.SeamlessTransfer
             //Recreate all controls... Will fix weird gui/paint/crap
             MyGuiScreenHudSpace.Static.RecreateControls(true);
             //MySession.Static.LocalHumanPlayer.BuildArmorSkin = OldArmorSkin;
+
+           
         }
 
 
@@ -388,8 +324,7 @@ namespace SeamlessClientPlugin.SeamlessTransfer
 
         private void LoadConnectedClients()
         {
-          
-
+         
             Patches.LoadMembersFromWorld.Invoke(MySession.Static, new object[] { TargetWorld, MyMultiplayer.Static });
 
 
@@ -397,13 +332,9 @@ namespace SeamlessClientPlugin.SeamlessTransfer
             object VirtualClientsValue = Patches.VirtualClients.GetValue(MySession.Static);
             Patches.InitVirtualClients.Invoke(VirtualClientsValue, null);
 
-            /*
-            SeamlessClient.TryShow("Loading exsisting Members From World!");
-            foreach (var Client in TargetWorld.Checkpoint.Clients)
-            {
-                SeamlessClient.TryShow("Adding New Client: " + Client.Name);
-                Sync.Clients.AddClient(Client.SteamId, Client.Name);
-            }*/
+
+            //load online players
+            LoadOnlinePlayers();
 
         }
 
@@ -442,6 +373,7 @@ namespace SeamlessClientPlugin.SeamlessTransfer
             MyMultiplayer.Static.PendingReplicablesDone -= MyMultiplayer_PendingReplicablesDone;
         }
 
+
         private void UpdateWorldGenerator()
         {
             //This will re-init the MyProceduralWorldGenerator. (Not doing this will result in asteroids not rendering in properly)
@@ -461,11 +393,8 @@ namespace SeamlessClientPlugin.SeamlessTransfer
                 Generator.Init(GeneratorSettings);
             }
 
-
-
             //Force component to reload, re-syncing settings and seeds to the destination server
             Generator.LoadData();
-
 
             //We need to go in and force planets to be empty areas in the generator. This is originially done on planet init.
             FieldInfo PlanetInitArgs = typeof(MyPlanet).GetField("m_planetInitValues", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
