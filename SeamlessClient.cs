@@ -25,6 +25,8 @@ using VRage.Utils;
 using VRageMath;
 using VRageRender;
 
+
+
 namespace SeamlessClientPlugin
 {
 
@@ -114,7 +116,6 @@ namespace SeamlessClientPlugin
 
 
         public const ushort SeamlessClientNetID = 2936;
-        private static System.Timers.Timer PingTimer = new System.Timers.Timer(500);
 
         public static bool IsSwitching = false;
         public static bool RanJoin = false;

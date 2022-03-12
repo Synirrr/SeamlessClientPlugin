@@ -3,11 +3,6 @@ using Sandbox.Game.World;
 using Sandbox.ModAPI;
 using SeamlessClientPlugin.SeamlessTransfer;
 using SeamlessClientPlugin.Utilities;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace SeamlessClientPlugin.ClientMessages
 {
