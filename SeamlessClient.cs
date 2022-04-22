@@ -9,6 +9,7 @@ using Sandbox.Graphics.GUI;
 using Sandbox.ModAPI;
 using SeamlessClientPlugin.ClientMessages;
 using SeamlessClientPlugin.SeamlessTransfer;
+using SeamlessClientPlugin.Utilities;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -143,17 +144,17 @@ namespace SeamlessClientPlugin
             if (!Initilized)
             {
                 Patches.GetPatches();
+                OnlinePlayers.Patch();
                 TryShow("Initilizing Communications!");
                 RunInitilizations();
             }
         }
 
-        
-
-
 
         public static void RunInitilizations()
         {
+
+
             MyAPIGateway.Multiplayer.RegisterSecureMessageHandler(SeamlessClientNetID, MessageHandler);
             Initilized = true;
         }

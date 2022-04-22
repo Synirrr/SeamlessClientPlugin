@@ -20,7 +20,7 @@
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
-    <OutputPath>..\..\..\..\..\Program Files %28x86%29\Steam\steamapps\common\SpaceEngineers\Plugins\</OutputPath>
+    <OutputPath>F:\SteamLibrary\steamapps\common\SpaceEngineers\Plugins\</OutputPath>
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
@@ -38,9 +38,8 @@
     <AutoGenerateBindingRedirects>false</AutoGenerateBindingRedirects>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="0Harmony, Version=2.0.4.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\Nexus\packages\Lib.Harmony.2.0.4\lib\net472\0Harmony.dll</HintPath>
-      <Private>False</Private>
+    <Reference Include="0Harmony, Version=2.2.1.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\Nexus\packages\Lib.Harmony.2.2.1\lib\net48\0Harmony.dll</HintPath>
     </Reference>
     <Reference Include="NLog">
       <HintPath>..\..\..\Desktop\TorchServers\torch-server1\DedicatedServer64\NLog.dll</HintPath>
@@ -150,6 +149,7 @@
     <Compile Include="SeamlessTransfer\MyScriptManagerLoader.cs" />
     <Compile Include="SeamlessTransfer\PingServer.cs" />
     <Compile Include="Messages\Transfer.cs" />
+    <Compile Include="Utilities\OnlinePlayers.cs" />
     <Compile Include="Utilities\Patches.cs" />
     <Compile Include="SeamlessTransfer\SwitchServers.cs" />
     <Compile Include="Utilities\Utility.cs" />

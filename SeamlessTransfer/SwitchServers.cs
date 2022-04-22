@@ -148,7 +148,7 @@ namespace SeamlessClientPlugin.SeamlessTransfer
 
             MyMultiplayer.Static.OnSessionReady();
 
-            RemoveOldEntities();
+           
             UpdateWorldGenerator();
 
             StartEntitySync();
@@ -413,6 +413,9 @@ namespace SeamlessClientPlugin.SeamlessTransfer
             //Unload current session on game thread
             if (MyMultiplayer.Static == null)
                 throw new Exception("MyMultiplayer.Static is null on unloading? dafuq?");
+
+
+            RemoveOldEntities();
 
             //Try and close the quest log
             MySessionComponentIngameHelp component = MySession.Static.GetComponent<MySessionComponentIngameHelp>();
