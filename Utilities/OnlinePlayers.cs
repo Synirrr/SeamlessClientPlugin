@@ -1,4 +1,5 @@
 ﻿using HarmonyLib;
+using ProtoBuf;
 using Sandbox.Engine.Multiplayer;
 using Sandbox.Game;
 using Sandbox.Game.Gui;
@@ -9,6 +10,7 @@ using Sandbox.Game.SessionComponents;
 using Sandbox.Game.VoiceChat;
 using Sandbox.Game.World;
 using Sandbox.Graphics.GUI;
+using SeamlessClientPlugin.Messages;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -24,9 +26,17 @@ using VRageMath;
 
 namespace SeamlessClientPlugin.Utilities
 {
+
     public class OnlinePlayers
     {
         private static Harmony Patcher = new Harmony("OnlinePlayersPatcher");
+        public static List<OnlineServer> AllServers = new List<OnlineServer>();
+        public static int currentServer;
+        private static string _currentServerName;
+
+        public static int totalPlayerCount = 0;
+        public static int currentPlayerCount = 0;
+
 
         private static MethodInfo m_UpdateCaption;
         private static MethodInfo m_RefreshMuteIcons;
@@ -64,7 +74,8 @@ namespace SeamlessClientPlugin.Utilities
         private static FieldInfo m_InviteButton;
 
         private static FieldInfo m_caption;
-
+        private static FieldInfo m_LobbyTypeCombo;
+        private static FieldInfo m_MaxPlayersSlider;
 
 
 
@@ -86,6 +97,7 @@ namespace SeamlessClientPlugin.Utilities
             m_inviteButton_ButtonClicked = typeof(MyGuiScreenPlayers).GetMethod("inviteButton_ButtonClicked", BindingFlags.Instance | BindingFlags.NonPublic);
             m_UpdateButtonsEnabledState = typeof(MyGuiScreenPlayers).GetMethod("UpdateButtonsEnabledState", BindingFlags.Instance | BindingFlags.NonPublic);
             m_PlayersTable_ItemSelected = typeof(MyGuiScreenPlayers).GetMethod("playersTable_ItemSelected", BindingFlags.Instance | BindingFlags.NonPublic);
+
             //m_SetColumnName = typeof(MyGuiScreenPlayers).GetMethod("SetColumnName", BindingFlags.Instance | BindingFlags.se);
 
 
@@ -98,6 +110,8 @@ namespace SeamlessClientPlugin.Utilities
             m_Warfare_timeRemainting_label = typeof(MyGuiScreenPlayers).GetField("m_warfare_timeRemainting_label", BindingFlags.Instance | BindingFlags.NonPublic);
             m_Warfare_timeRemainting_time = typeof(MyGuiScreenPlayers).GetField("m_warfare_timeRemainting_time", BindingFlags.Instance | BindingFlags.NonPublic);
             m_LastSelected = typeof(MyGuiScreenPlayers).GetField("m_lastSelected", BindingFlags.Instance | BindingFlags.NonPublic);
+            m_MaxPlayersSlider = typeof(MyGuiScreenPlayers).GetField("m_maxPlayersSlider", BindingFlags.Instance | BindingFlags.NonPublic);
+
 
             /* Buttons */
             m_ProfileButton = typeof(MyGuiScreenPlayers).GetField("m_profileButton", BindingFlags.Instance | BindingFlags.NonPublic);
@@ -107,7 +121,7 @@ namespace SeamlessClientPlugin.Utilities
             m_BanButton = typeof(MyGuiScreenPlayers).GetField("m_banButton", BindingFlags.Instance | BindingFlags.NonPublic);
             m_TradeButton = typeof(MyGuiScreenPlayers).GetField("m_tradeButton", BindingFlags.Instance | BindingFlags.NonPublic);
             m_InviteButton = typeof(MyGuiScreenPlayers).GetField("m_inviteButton", BindingFlags.Instance | BindingFlags.NonPublic);
-
+            m_LobbyTypeCombo = typeof(MyGuiScreenPlayers).GetField("m_lobbyTypeCombo", BindingFlags.Instance | BindingFlags.NonPublic);
             m_AddCaption = typeof(MyGuiScreenPlayers).GetMethod("AddCaption", BindingFlags.Instance | BindingFlags.NonPublic, null, new Type[] { typeof(MyStringId), typeof(Vector4?), typeof(Vector2?), typeof(float) }, null);
 
 
@@ -118,19 +132,20 @@ namespace SeamlessClientPlugin.Utilities
 
 
             MethodInfo recreateControls = typeof(MyGuiScreenPlayers).GetMethod("RecreateControls", BindingFlags.Instance | BindingFlags.Public);
-
+            MethodInfo updateCaption = typeof(MyGuiScreenPlayers).GetMethod("UpdateCaption", BindingFlags.Instance | BindingFlags.NonPublic);
 
 
 
 
             Patcher.Patch(recreateControls, prefix: new HarmonyMethod(GetPatchMethod(nameof(RecreateControlsPrefix))));
+            Patcher.Patch(updateCaption, prefix: new HarmonyMethod(GetPatchMethod(nameof(UpdateCaption))));
             //Patcher.Patch(recreateControls, postfix: new HarmonyMethod(GetPatchMethod(nameof(RecreateControlsSuffix))));
         }
 
 
         public static bool RecreateControlsPrefix(MyGuiScreenPlayers __instance, bool constructor)
         {
-       
+
             if (MyMultiplayer.Static != null && MyMultiplayer.Static.IsLobby)
             {
                 return true;
@@ -140,17 +155,29 @@ namespace SeamlessClientPlugin.Utilities
             {
 
 
-                SeamlessClient.TryShow("A");
+                __instance.Controls.Clear();
+                __instance.Elements.Clear();
+                //__instance.Elements.Add(m_cl);
+                __instance.FocusedControl = null;
+                //__instance.m_firstUpdateServed = false;
+                //__instance.m_screenCreation = DateTime.UtcNow;
+                //__instance.m_gamepadHelpInitialized = false;
+                //__instance.m_gamepadHelpLabel = null;
 
-                
+
+                //SeamlessClient.TryShow("A");
+
+
                 //__instance.RecreateControls(constructor);
                 __instance.Size = new Vector2(0.937f, 0.913f);
                 __instance.CloseButtonEnabled = true;
 
 
-                SeamlessClient.TryShow("A2");
+                //SeamlessClient.TryShow("A2");
+                //MyCommonTexts.ScreenCaptionPlayers
 
-                m_caption.SetValue(__instance, m_AddCaption.Invoke(__instance, new object[4] { MyCommonTexts.ScreenCaptionPlayers, null, new Vector2(0f, 0.003f), 0.8f  }));
+                //MyStringId ID = MyStringId.GetOrCompute("Test Caption");
+                m_caption.SetValue(__instance, m_AddCaption.Invoke(__instance, new object[4] { MyCommonTexts.ScreenCaptionPlayers, null, new Vector2(0f, 0.003f), 0.8f }));
 
 
                 float StartX = -0.435f;
@@ -171,7 +198,7 @@ namespace SeamlessClientPlugin.Utilities
                 Vector2 Spacing = new Vector2(0f, 0.057f);
                 Vector2 vector3 = new Vector2(StartX, StartY + 0.035f);
 
-                SeamlessClient.TryShow("B");
+                //SeamlessClient.TryShow("B");
 
                 MyGuiControlButton m_profileButton = new MyGuiControlButton(vector3, MyGuiControlButtonStyleEnum.Default, null, null, MyGuiDrawAlignEnum.HORISONTAL_LEFT_AND_VERTICAL_TOP, null, MyTexts.Get(MyCommonTexts.ScreenPlayers_Profile));
                 m_profileButton.ButtonClicked += delegate (MyGuiControlButton obj) { m_profileButton_ButtonClicked.Invoke(__instance, new object[] { obj }); };
@@ -214,26 +241,32 @@ namespace SeamlessClientPlugin.Utilities
 
 
 
-                SeamlessClient.TryShow("C");
+                //SeamlessClient.TryShow("C");
+
+                Vector2 vector4 = vector3 + new Vector2(-0.002f, m_tradeButton.Size.Y + 0.03f);
+                MyGuiControlCombobox m_lobbyTypeCombo = new MyGuiControlCombobox(vector4, null, null, null, 3);
+                m_LobbyTypeCombo.SetValue(__instance, m_lobbyTypeCombo);
+
+                Vector2 vector5 = vector4 + new Vector2(0f, 0.05f);
+                vector5 += new Vector2(0f, 0.03f);
+                int m_maxPlayers = (Sync.IsServer ? MyMultiplayerLobby.MAX_PLAYERS : 16);
+                m_MaxPlayers.SetValue(__instance, m_maxPlayers);
+                MyGuiControlSlider m_maxPlayersSlider = new MyGuiControlSlider(vector5, 2f, Math.Max(m_maxPlayers, 3), 0.177f, Sync.IsServer ? MySession.Static.MaxPlayers : MyMultiplayer.Static.MemberLimit, null, null, 1, 0.8f, 0f, "White", null, MyGuiControlSliderStyleEnum.Default, MyGuiDrawAlignEnum.HORISONTAL_LEFT_AND_VERTICAL_TOP, intValue: true);
+                m_MaxPlayersSlider.SetValue(__instance, m_maxPlayersSlider);
 
 
-
-                m_MaxPlayers.SetValue(__instance, (Sync.IsServer ? MyMultiplayerLobby.MAX_PLAYERS : 16));
-
-
-
-                MyGuiControlButton m_inviteButton = new MyGuiControlButton(new Vector2(StartX, 0.285000026f), MyGuiControlButtonStyleEnum.Default, null, null, MyGuiDrawAlignEnum.HORISONTAL_LEFT_AND_VERTICAL_TOP, null, MyTexts.Get(MyCommonTexts.ScreenPlayers_Invite));
+                MyGuiControlButton m_inviteButton = new MyGuiControlButton(new Vector2(StartX, 0.25000026f), MyGuiControlButtonStyleEnum.Default, null, null, MyGuiDrawAlignEnum.HORISONTAL_LEFT_AND_VERTICAL_TOP, null, MyTexts.Get(MyCommonTexts.ScreenPlayers_Invite));
                 m_inviteButton.ButtonClicked += delegate (MyGuiControlButton obj) { m_inviteButton_ButtonClicked.Invoke(__instance, new object[] { obj }); };
                 __instance.Controls.Add(m_inviteButton);
                 m_InviteButton.SetValue(__instance, m_inviteButton);
 
                 Vector2 vector6 = new Vector2(-StartX - 0.034f, StartY + 0.033f);
-                Vector2 size = new Vector2(0.66f, 1f);
+                Vector2 size = new Vector2(0.66f, 1.2f);
                 int num2 = 18;
                 float num3 = 0f;
 
 
-                SeamlessClient.TryShow("D");
+                //SeamlessClient.TryShow("D");
                 MySessionComponentMatch component = MySession.Static.GetComponent<MySessionComponentMatch>();
                 if (component.IsEnabled)
                 {
@@ -265,7 +298,7 @@ namespace SeamlessClientPlugin.Utilities
                     vector6.Y += m_warfare_timeRemainting_label.Size.Y + num4 + num3 * 2f;
                     num2 -= 3;
                 }
-                SeamlessClient.TryShow("E");
+                //SeamlessClient.TryShow("E");
 
                 MyGuiControlTable m_playersTable = new MyGuiControlTable
                 {
@@ -277,16 +310,16 @@ namespace SeamlessClientPlugin.Utilities
 
                 m_PlayersTable.SetValue(__instance, m_playersTable);
 
-                SeamlessClient.TryShow("F");
+                //SeamlessClient.TryShow("F");
 
                 m_playersTable.GamepadHelpTextId = MySpaceTexts.PlayersScreen_Help_PlayersList;
                 m_playersTable.VisibleRowsCount = num2;
                 float PlayerName = 0.2f;
-                float Rank = 0.08f;
+                float Rank = 0.1f;
                 float Ping = 0.08f;
-                float Muted = 0.06f;
+                float Muted = 0.1f;
                 float SteamIcon = 0.04f;
-                float Server = 0.25f;
+                float Server = 0.20f;
                 float FactionName = 1f - PlayerName - Rank - Muted - Ping - SteamIcon - Server;
 
                 m_playersTable.SetCustomColumnWidths(new float[7]
@@ -300,7 +333,7 @@ namespace SeamlessClientPlugin.Utilities
                     Server,
                 });
 
-                SeamlessClient.TryShow("G");
+                //SeamlessClient.TryShow("G");
 
                 m_playersTable.SetColumnComparison(1, (MyGuiControlTable.Cell a, MyGuiControlTable.Cell b) => a.Text.CompareToIgnoreCase(b.Text));
                 m_playersTable.SetColumnName(1, MyTexts.Get(MyCommonTexts.ScreenPlayers_PlayerName));
@@ -317,33 +350,53 @@ namespace SeamlessClientPlugin.Utilities
                 m_playersTable.SetColumnName(6, colName);
                 m_playersTable.SetColumnComparison(6, (MyGuiControlTable.Cell a, MyGuiControlTable.Cell b) => a.Text.CompareToIgnoreCase(b.Text));
 
-                SeamlessClient.TryShow("H");
+                //SeamlessClient.TryShow("H");
 
 
                 //m_PlayersTable_ItemSelected
                 m_playersTable.ItemSelected += delegate (MyGuiControlTable i, MyGuiControlTable.EventArgs x) { m_PlayersTable_ItemSelected.Invoke(__instance, new object[] { i, x }); };
                 m_playersTable.UpdateTableSortHelpText();
                 __instance.Controls.Add(m_playersTable);
+
+
+                string thisServerName = "thisServer";
+                totalPlayerCount = 0;
+                foreach(var server in AllServers)
+                {
+
+                    string servername = server.ServerName;
+                    if (server.ServerID == currentServer)
+                    {
+                        thisServerName = servername;
+                        _currentServerName = servername;
+                        continue;
+                    }
+
+                    foreach (var player in server.Players)
+                    {
+                     
+                        AddPlayer(__instance, player.SteamID, servername, player.PlayerName, player.IdentityID);
+                        totalPlayerCount++;
+                    }
+
+                }
+
+
+
+                currentPlayerCount = 0;
                 foreach (MyPlayer onlinePlayer in Sync.Players.GetOnlinePlayers())
                 {
                     if (onlinePlayer.Id.SerialId != 0)
                     {
                         continue;
                     }
-                    for (int j = 0; j < m_playersTable.RowsCount; j++)
-                    {
-                        MyGuiControlTable.Row row = m_playersTable.GetRow(j);
-                        if (row.UserData is ulong)
-                        {
-                            _ = (ulong)row.UserData;
-                            _ = onlinePlayer.Id.SteamId;
-                        }
-                    }
 
-                    AddPlayer(__instance, onlinePlayer.Id.SteamId);
+                    currentPlayerCount++;
+                    totalPlayerCount++;
+                    AddPlayer(__instance, onlinePlayer.Id.SteamId, thisServerName);
                 }
 
-                SeamlessClient.TryShow("I");
+                //SeamlessClient.TryShow("I");
 
                 ulong m_lastSelected = (ulong)m_LastSelected.GetValue(__instance);
                 if (m_lastSelected != 0L)
@@ -359,6 +412,10 @@ namespace SeamlessClientPlugin.Utilities
                 //UpdateButtonsEnabledState();
 
                 m_UpdateCaption.Invoke(__instance, null);
+
+
+
+
                 Vector2 minSizeGui = MyGuiControlButton.GetVisualStyle(MyGuiControlButtonStyleEnum.Default).NormalTexture.MinSizeGui;
                 MyGuiControlLabel myGuiControlLabel = new MyGuiControlLabel(new Vector2(start.X, start.Y + minSizeGui.Y / 2f));
                 myGuiControlLabel.Name = MyGuiScreenBase.GAMEPAD_HELP_LABEL_NAME;
@@ -366,10 +423,10 @@ namespace SeamlessClientPlugin.Utilities
                 __instance.GamepadHelpTextId = MySpaceTexts.PlayersScreen_Help_Screen;
                 __instance.FocusedControl = m_playersTable;
 
-                SeamlessClient.TryShow("J");
+                //SeamlessClient.TryShow("J");
 
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 SeamlessClient.TryShow(ex.ToString());
             }
@@ -377,101 +434,26 @@ namespace SeamlessClientPlugin.Utilities
             return false;
         }
 
-        /*
-        public void AddPlayer(ulong steamID, string memberName, string server)
-        {
-
-            if (string.IsNullOrEmpty(memberName))
-            {
-                return;
-            }
-            MyGuiControlTable.Row row = new MyGuiControlTable.Row(steamID);
-            string memberServiceName = MyMultiplayer.Static.GetMemberServiceName(steamID);
-            StringBuilder text = new StringBuilder();
-            MyGuiHighlightTexture? icon = new MyGuiHighlightTexture
-            {
-                Normal = "Textures\\GUI\\Icons\\Services\\" + memberServiceName + ".png",
-                Highlight = "Textures\\GUI\\Icons\\Services\\" + memberServiceName + ".png",
-                SizePx = new Vector2(24f, 24f)
-            };
-            row.AddCell(new MyGuiControlTable.Cell(text, null, memberServiceName, Color.White, icon, MyGuiDrawAlignEnum.HORISONTAL_LEFT_AND_VERTICAL_CENTER));
-            row.AddCell(new MyGuiControlTable.Cell(new StringBuilder(memberName), memberName));
-            long playerId = Sync.Players.TryGetIdentityId(steamID);
-            MyFaction playerFaction = MySession.Static.Factions.GetPlayerFaction(playerId);
-            string text2 = "";
-            StringBuilder stringBuilder = new StringBuilder();
-            if (playerFaction != null)
-            {
-                text2 += playerFaction.Name;
-                text2 = text2 + " | " + memberName;
-                foreach (KeyValuePair<long, MyFactionMember> member in playerFaction.Members)
-                {
-                    if ((member.Value.IsLeader || member.Value.IsFounder) && MySession.Static.Players.TryGetPlayerId(member.Value.PlayerId, out var result) && MySession.Static.Players.TryGetPlayerById(result, out var player))
-                    {
-                        text2 = text2 + " | " + player.DisplayName;
-                        break;
-                    }
-                }
-                stringBuilder.Append(MyStatControlText.SubstituteTexts(playerFaction.Name));
-                if (playerFaction.IsLeader(playerId))
-                {
-                    stringBuilder.Append(" (").Append((object)MyTexts.Get(MyCommonTexts.Leader)).Append(")");
-                }
-                if (!string.IsNullOrEmpty(playerFaction.Tag))
-                {
-                    stringBuilder.Insert(0, "[" + playerFaction.Tag + "] ");
-                }
-            }
-            row.AddCell(new MyGuiControlTable.Cell(stringBuilder, null, text2));
-            StringBuilder stringBuilder2 = new StringBuilder();
-            MyPromoteLevel userPromoteLevel = MySession.Static.GetUserPromoteLevel(steamID);
-            for (int i = 0; i < (int)userPromoteLevel; i++)
-            {
-                stringBuilder2.Append("*");
-            }
-            row.AddCell(new MyGuiControlTable.Cell(stringBuilder2));
-
-
-            row.AddCell(new MyGuiControlTable.Cell(new StringBuilder("----")));
-
-            MyGuiControlTable.Cell cell = new MyGuiControlTable.Cell(new StringBuilder(""));
-            row.AddCell(cell);
-            if (steamID != Sync.MyId)
-            {
-                MyGuiControlButton myGuiControlButton = new MyGuiControlButton();
-                myGuiControlButton.CustomStyle = m_buttonSizeStyleUnMuted;
-                myGuiControlButton.Size = new Vector2(0.03f, 0.04f);
-                myGuiControlButton.CueEnum = GuiSounds.None;
-                //myGuiControlButton.ButtonClicked += OnToggleMutePressed;
-                myGuiControlButton.UserData = steamID;
-                cell.Control = myGuiControlButton;
-                table.Controls.Add(myGuiControlButton);
-                //RefreshMuteIcons();
-            }
-
-            row.AddCell(new MyGuiControlTable.Cell(new StringBuilder(server), server));
-
-            table.Add(row);
-            //UpdateCaption();
-        }
-
-        */
-
-
-        private static bool AddPlayer(MyGuiScreenPlayers __instance, ulong userId)
+        private static bool AddPlayer(MyGuiScreenPlayers __instance, ulong userId, string server, string playername = null, long playerId = 0)
         {
             MyGuiControlTable table = (MyGuiControlTable)m_playersTable.GetValue(__instance);
             Dictionary<ulong, short> pings = (Dictionary<ulong, short>)m_pings.GetValue(__instance);
 
+            if(playername == null)
+                 playername = MyMultiplayer.Static.GetMemberName(userId);
 
-            string memberName = MyMultiplayer.Static.GetMemberName(userId);
-            if (string.IsNullOrEmpty(memberName))
+            if (string.IsNullOrEmpty(playername))
             {
                 return false;
             }
+
+
             MyGuiControlTable.Row row = new MyGuiControlTable.Row(userId);
             string memberServiceName = MyMultiplayer.Static.GetMemberServiceName(userId);
             StringBuilder text = new StringBuilder();
+
+
+
             MyGuiHighlightTexture? icon = new MyGuiHighlightTexture
             {
                 Normal = "Textures\\GUI\\Icons\\Services\\" + memberServiceName + ".png",
@@ -479,15 +461,21 @@ namespace SeamlessClientPlugin.Utilities
                 SizePx = new Vector2(24f, 24f)
             };
             row.AddCell(new MyGuiControlTable.Cell(text, null, memberServiceName, Color.White, icon, MyGuiDrawAlignEnum.HORISONTAL_LEFT_AND_VERTICAL_CENTER));
-            row.AddCell(new MyGuiControlTable.Cell(new StringBuilder(memberName), memberName));
-            long playerId = Sync.Players.TryGetIdentityId(userId);
+            row.AddCell(new MyGuiControlTable.Cell(new StringBuilder(playername), playername));
+
+
+            if(playerId == 0)
+                playerId = Sync.Players.TryGetIdentityId(userId);
+
+        
+
             MyFaction playerFaction = MySession.Static.Factions.GetPlayerFaction(playerId);
             string text2 = "";
             StringBuilder stringBuilder = new StringBuilder();
             if (playerFaction != null)
             {
                 text2 += playerFaction.Name;
-                text2 = text2 + " | " + memberName;
+                text2 = text2 + " | " + playername;
                 foreach (KeyValuePair<long, MyFactionMember> member in playerFaction.Members)
                 {
                     if ((member.Value.IsLeader || member.Value.IsFounder) && MySession.Static.Players.TryGetPlayerId(member.Value.PlayerId, out var result) && MySession.Static.Players.TryGetPlayerById(result, out var player))
@@ -534,7 +522,7 @@ namespace SeamlessClientPlugin.Utilities
 
                 Action<MyGuiControlButton> btnClicked = delegate (MyGuiControlButton b)
                {
-                   m_OnToggleMutePressed.Invoke(__instance, null);
+                   m_OnToggleMutePressed.Invoke(__instance, new object[] { b });
                };
 
 
@@ -549,12 +537,30 @@ namespace SeamlessClientPlugin.Utilities
             table.Add(row);
             m_UpdateCaption.Invoke(__instance, null);
 
-            row.AddCell(new MyGuiControlTable.Cell(new StringBuilder("ThisServer"), "ThisServer"));
+            row.AddCell(new MyGuiControlTable.Cell(new StringBuilder(server), "Server Name"));
 
             return false;
         }
 
-        
+        private static bool UpdateCaption(MyGuiScreenPlayers __instance)
+        {
+            if (MyMultiplayer.Static != null && MyMultiplayer.Static.IsLobby)
+            {
+                return true;
+            }
+
+            MyGuiControlLabel mM_caption = (MyGuiControlLabel)m_caption.GetValue(__instance);
+            MyGuiControlTable mm_playersTable = (MyGuiControlTable)m_playersTable.GetValue(__instance);
+          
+
+
+            //string s = $"{MyTexts.Get(MyCommonTexts.ScreenCaptionServerName).ToString()} - SectorPlayers: ({ mm_playersTable.RowsCount} / {MySession.Static.MaxPlayers}) TotalPlayers: ( {5} / 200 )";
+
+            mM_caption.Text = string.Concat("Server: ", _currentServerName, "  -  ", "Innstance Players", " (", currentPlayerCount, " / ", MySession.Static.MaxPlayers, ")    TotalPlayers: ( ", totalPlayerCount, " )");
+
+
+            return false;
+        }
 
         private static int GamePingCompare(MyGuiControlTable.Cell a, MyGuiControlTable.Cell b)
         {
@@ -590,9 +596,6 @@ namespace SeamlessClientPlugin.Utilities
         {
             return typeof(OnlinePlayers).GetMethod(v, BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
         }
-
-
-
 
     }
 }

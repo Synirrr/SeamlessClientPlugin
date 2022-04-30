@@ -8,7 +8,6 @@ using Sandbox.Game.Multiplayer;
 using Sandbox.Game.World;
 using Sandbox.Graphics.GUI;
 using Sandbox.ModAPI;
-using SeamlessClientPlugin.ClientMessages;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -25,7 +24,7 @@ using VRage.Steam;
 using VRage.Utils;
 using VRageMath;
 
-namespace SeamlessClientPlugin.SeamlessTransfer
+namespace SeamlessClientPlugin.Messages
 {
 
     [ProtoContract]

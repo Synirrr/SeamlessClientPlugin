@@ -7,7 +7,7 @@ using Sandbox.Game.Multiplayer;
 using Sandbox.Game.World;
 using Sandbox.Graphics.GUI;
 using Sandbox.ModAPI;
-using SeamlessClientPlugin.ClientMessages;
+using SeamlessClientPlugin.Messages;
 using SeamlessClientPlugin.SeamlessTransfer;
 using SeamlessClientPlugin.Utilities;
 using System;
@@ -184,6 +184,13 @@ namespace SeamlessClientPlugin
                     //Server sent a transfer message! Begin transfer via seamless
                     Transfer TransferMessage = Recieved.GetTransferData();
                     ServerPing.StartServerPing(TransferMessage);
+                }else if(Recieved.MessageType == ClientMessageType.OnlinePlayers)
+                {
+                    var p = Recieved.GetOnlinePlayers();
+                    OnlinePlayers.AllServers = p.OnlineServers;
+                    OnlinePlayers.currentServer = p.currentServerID;
+
+                    //TryShow("Recieved Players! "+OnlinePlayers.AllServers.Count);
                 }
             }
             catch (Exception ex)

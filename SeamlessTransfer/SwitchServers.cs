@@ -265,7 +265,6 @@ namespace SeamlessClientPlugin.SeamlessTransfer
 
 
             // Set new admin settings
-
             if (TargetWorld.Checkpoint.PromotedUsers != null)
             {
                 MySession.Static.PromotedUsers = TargetWorld.Checkpoint.PromotedUsers.Dictionary;
@@ -427,6 +426,10 @@ namespace SeamlessClientPlugin.SeamlessTransfer
 
  
             MyHud.Chat.UnregisterChat(MyMultiplayer.Static);
+
+
+
+
             MySession.Static.Gpss.RemovePlayerGpss(MySession.Static.LocalPlayerId);
             MyHud.GpsMarkers.Clear();
             MyMultiplayer.Static.ReplicationLayer.Disconnect();

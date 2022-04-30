@@ -11,7 +11,6 @@ using Sandbox.Game.World.Generator;
 using Sandbox.Graphics;
 using Sandbox.Graphics.GUI;
 using Sandbox.ModAPI;
-using SeamlessClientPlugin.ClientMessages;
 using System;
 using System.Collections.Generic;
 using System.IO;

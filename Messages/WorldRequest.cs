@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 using VRage.Game;
 using VRage.ObjectBuilders;
 
-namespace SeamlessClientPlugin.ClientMessages
+namespace SeamlessClientPlugin.Messages
 {
     [ProtoContract]
     public class WorldRequest
