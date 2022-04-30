@@ -40,9 +40,11 @@ namespace SeamlessClientPlugin.SeamlessTransfer
 
             SeamlessClient.TryShow("Beginning Redirect to server: " + Transfer.TargetServerID);
 
+
+            var world = Request.DeserializeWorldData();
           
 
-            SwitchServers Switcher = new SwitchServers(E, Request.DeserializeWorldData());
+            SwitchServers Switcher = new SwitchServers(E, world);
             Switcher.BeginSwitch();
         }
     }
