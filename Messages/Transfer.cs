@@ -38,10 +38,6 @@ namespace SeamlessClientPlugin.Messages
         public WorldRequest WorldRequest;
         [ProtoMember(7)]
         public string PlayerName;
-
-        [ProtoMember(8)]
-        public List<MyObjectBuilder_Gps.Entry> PlayerGPSCoords;
-
         [ProtoMember(9)]
         public MyObjectBuilder_Toolbar PlayerToolbar;
 

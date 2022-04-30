@@ -27,6 +27,9 @@ namespace SeamlessClientPlugin.Messages
         [ProtoMember(4)]
         public byte[] WorldData;
 
+        [ProtoMember(5)]
+        public MyObjectBuilder_Gps gpsCollection;
+
         public WorldRequest(ulong PlayerID,long PlayerIdentity, string Name)
         {
             this.PlayerID = PlayerID;
@@ -58,6 +61,10 @@ namespace SeamlessClientPlugin.Messages
         public MyObjectBuilder_World DeserializeWorldData()
         {
             MyObjectBuilderSerializer.DeserializeGZippedXML<MyObjectBuilder_World>(new MemoryStream(WorldData), out var objectBuilder);
+            objectBuilder.Checkpoint.Gps.Dictionary.Add(IdentityID, gpsCollection);
+            
+
+
             return objectBuilder;
         }
 
