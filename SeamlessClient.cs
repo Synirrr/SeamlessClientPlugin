@@ -7,8 +7,9 @@ using Sandbox.Game.Multiplayer;
 using Sandbox.Game.World;
 using Sandbox.Graphics.GUI;
 using Sandbox.ModAPI;
-using SeamlessClientPlugin.ClientMessages;
+using SeamlessClientPlugin.Messages;
 using SeamlessClientPlugin.SeamlessTransfer;
+using SeamlessClientPlugin.Utilities;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -24,6 +25,8 @@ using VRage.Plugins;
 using VRage.Utils;
 using VRageMath;
 using VRageRender;
+
+
 
 namespace SeamlessClientPlugin
 {
@@ -114,7 +117,6 @@ namespace SeamlessClientPlugin
 
 
         public const ushort SeamlessClientNetID = 2936;
-        private static System.Timers.Timer PingTimer = new System.Timers.Timer(500);
 
         public static bool IsSwitching = false;
         public static bool RanJoin = false;
@@ -142,17 +144,17 @@ namespace SeamlessClientPlugin
             if (!Initilized)
             {
                 Patches.GetPatches();
+                OnlinePlayers.Patch();
                 TryShow("Initilizing Communications!");
                 RunInitilizations();
             }
         }
 
-        
-
-
 
         public static void RunInitilizations()
         {
+
+
             MyAPIGateway.Multiplayer.RegisterSecureMessageHandler(SeamlessClientNetID, MessageHandler);
             Initilized = true;
         }
@@ -182,6 +184,13 @@ namespace SeamlessClientPlugin
                     //Server sent a transfer message! Begin transfer via seamless
                     Transfer TransferMessage = Recieved.GetTransferData();
                     ServerPing.StartServerPing(TransferMessage);
+                }else if(Recieved.MessageType == ClientMessageType.OnlinePlayers)
+                {
+                    var p = Recieved.GetOnlinePlayers();
+                    OnlinePlayers.AllServers = p.OnlineServers;
+                    OnlinePlayers.currentServer = p.currentServerID;
+
+                    //TryShow("Recieved Players! "+OnlinePlayers.AllServers.Count);
                 }
             }
             catch (Exception ex)

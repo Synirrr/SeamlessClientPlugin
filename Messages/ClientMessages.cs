@@ -3,18 +3,15 @@ using Sandbox.Game.World;
 using Sandbox.ModAPI;
 using SeamlessClientPlugin.SeamlessTransfer;
 using SeamlessClientPlugin.Utilities;
-using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace SeamlessClientPlugin.ClientMessages
+namespace SeamlessClientPlugin.Messages
 {
     public enum ClientMessageType
     {
         FirstJoin,
-        TransferServer
+        TransferServer,
+        OnlinePlayers,
     }
 
 
@@ -64,6 +61,16 @@ namespace SeamlessClientPlugin.ClientMessages
 
             return Utility.Deserialize<Transfer>(MessageData);
 
+        }
+
+        public OnlinePlayersMessage GetOnlinePlayers()
+        {
+            if (MessageData == null)
+                return default(OnlinePlayersMessage);
+
+
+            OnlinePlayersMessage msg = Utility.Deserialize<OnlinePlayersMessage>(MessageData);
+            return msg;
         }
 
     }

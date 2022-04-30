@@ -148,7 +148,7 @@ namespace SeamlessClientPlugin.SeamlessTransfer
 
             MyMultiplayer.Static.OnSessionReady();
 
-            RemoveOldEntities();
+           
             UpdateWorldGenerator();
 
             StartEntitySync();
@@ -265,7 +265,6 @@ namespace SeamlessClientPlugin.SeamlessTransfer
 
 
             // Set new admin settings
-
             if (TargetWorld.Checkpoint.PromotedUsers != null)
             {
                 MySession.Static.PromotedUsers = TargetWorld.Checkpoint.PromotedUsers.Dictionary;
@@ -414,6 +413,9 @@ namespace SeamlessClientPlugin.SeamlessTransfer
             if (MyMultiplayer.Static == null)
                 throw new Exception("MyMultiplayer.Static is null on unloading? dafuq?");
 
+
+            RemoveOldEntities();
+
             //Try and close the quest log
             MySessionComponentIngameHelp component = MySession.Static.GetComponent<MySessionComponentIngameHelp>();
             component?.TryCancelObjective();
@@ -424,6 +426,10 @@ namespace SeamlessClientPlugin.SeamlessTransfer
 
  
             MyHud.Chat.UnregisterChat(MyMultiplayer.Static);
+
+
+
+
             MySession.Static.Gpss.RemovePlayerGpss(MySession.Static.LocalPlayerId);
             MyHud.GpsMarkers.Clear();
             MyMultiplayer.Static.ReplicationLayer.Disconnect();

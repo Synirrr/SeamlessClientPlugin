@@ -1,6 +1,6 @@
 ﻿using Sandbox.Engine.Networking;
 using Sandbox.Game.Multiplayer;
-using SeamlessClientPlugin.ClientMessages;
+using SeamlessClientPlugin.Messages;
 using System;
 using System.Collections.Generic;
 using System.Linq;
