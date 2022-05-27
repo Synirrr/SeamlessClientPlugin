@@ -255,9 +255,18 @@ namespace SeamlessClientPlugin.SeamlessTransfer
             MySession.Static.CustomLoadingScreenText = TargetWorld.Checkpoint.CustomLoadingScreenText;
             MySession.Static.CustomSkybox = TargetWorld.Checkpoint.CustomSkybox;
 
+            try
+            {
+                MySession.Static.Gpss = new MyGpsCollection();
+                MySession.Static.Gpss.LoadGpss(TargetWorld.Checkpoint);
 
-            MySession.Static.Gpss = new MyGpsCollection();
-            MySession.Static.Gpss.LoadGpss(TargetWorld.Checkpoint);
+            }
+            catch(Exception ex)
+            {
+                SeamlessClient.TryShow($"An error occured while loading GPS points! You will have an empty gps list! \n {ex.ToString()}");
+            }
+
+
             MyRenderProxy.RebuildCullingStructure();
             //MySession.Static.Toolbars.LoadToolbars(checkpoint);
 
